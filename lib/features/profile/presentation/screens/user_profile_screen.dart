@@ -14,13 +14,17 @@ class UserProfileScreen extends StatefulWidget {
   State<UserProfileScreen> createState() => _UserProfileScreenState();
 }
 
-class _UserProfileScreenState extends State<UserProfileScreen> with SingleTickerProviderStateMixin {
+class _UserProfileScreenState extends State<UserProfileScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<ProfileCubit>().loadProfile();
+    });
   }
 
   @override
@@ -33,9 +37,28 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
   Widget build(BuildContext context) {
     return BlocBuilder<ProfileCubit, ProfileState>(
       builder: (context, state) {
+        if (state is ProfileError) {
+          return Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(state.message, textAlign: TextAlign.center),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: () => context.read<ProfileCubit>().loadProfile(),
+                    child: const Text('Thử lại'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
         if (state is! ProfileLoaded) {
           return const Scaffold(
-            body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+            body: Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            ),
           );
         }
 
@@ -55,12 +78,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
             ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.admin_panel_settings_outlined, color: AppColors.secondary),
+                icon: const Icon(
+                  Icons.admin_panel_settings_outlined,
+                  color: AppColors.secondary,
+                ),
                 tooltip: 'Trung tâm Quản trị Admin (AD-01 → AD-08)',
                 onPressed: () => context.push('/admin'),
               ),
               IconButton(
-                icon: const Icon(Icons.settings_outlined, color: AppColors.textPrimary),
+                icon: const Icon(
+                  Icons.settings_outlined,
+                  color: AppColors.textPrimary,
+                ),
                 tooltip: 'Chỉnh sửa hồ sơ & Cài đặt',
                 onPressed: () => context.push('/edit-profile'),
               ),
@@ -72,7 +101,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
                 SliverToBoxAdapter(
                   child: Container(
                     color: AppColors.surface,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 20,
+                    ),
                     child: Column(
                       children: [
                         // Avatar & Badges
@@ -80,8 +112,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
                           children: [
                             CircleAvatar(
                               radius: 46,
-                              backgroundColor: AppColors.primary.withOpacity(0.15),
-                              backgroundImage: NetworkImage(profile.avatarUrl),
+                              backgroundColor: AppColors.primary.withOpacity(
+                                0.15,
+                              ),
+                              backgroundImage: profile.avatarUrl.isEmpty
+                                  ? null
+                                  : NetworkImage(profile.avatarUrl),
+                              child: profile.avatarUrl.isEmpty
+                                  ? const Icon(Icons.person_outline)
+                                  : null,
                             ),
                             Positioned(
                               bottom: 0,
@@ -92,7 +131,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
                                   color: AppColors.accent,
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(Icons.check, size: 16, color: Colors.white),
+                                child: const Icon(
+                                  Icons.check,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
                           ],
@@ -105,10 +148,17 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
                           children: [
                             Text(
                               profile.name,
-                              style: AppTypography.headlineSmall.copyWith(fontWeight: FontWeight.bold),
+                              style: AppTypography.headlineSmall.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             const SizedBox(width: 6),
-                            const Icon(Icons.verified, size: 20, color: AppColors.accent),
+                            if (profile.isVerified)
+                              const Icon(
+                                Icons.verified,
+                                size: 20,
+                                color: AppColors.accent,
+                              ),
                           ],
                         ),
                         const SizedBox(height: 4),
@@ -116,13 +166,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
                         // MSSV & Cohort & Campus
                         Text(
                           'MSSV: ${profile.studentId} • ${profile.cohort} • ${profile.campus}',
-                          style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                          style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                         const SizedBox(height: 8),
 
                         // Role Badge
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.secondary.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(16),
@@ -143,7 +198,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
                           child: Text(
                             profile.bio,
                             textAlign: TextAlign.center,
-                            style: AppTypography.bodyMedium.copyWith(color: AppColors.textPrimary, height: 1.4),
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: AppColors.textPrimary,
+                              height: 1.4,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -159,8 +217,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.primary,
                                   foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
                                   elevation: 0,
                                 ),
                               ),
@@ -173,11 +235,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
                                 border: Border.all(color: AppColors.border),
                               ),
                               child: IconButton(
-                                icon: const Icon(Icons.calendar_month, color: AppColors.secondary),
+                                icon: const Icon(
+                                  Icons.calendar_month,
+                                  color: AppColors.secondary,
+                                ),
                                 tooltip: 'Google Calendar (US-11)',
                                 onPressed: () {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Lịch hẹn cá nhân: ${profile.calendarUrl}')),
+                                    SnackBar(
+                                      content: Text(
+                                        'Lịch hẹn cá nhân: ${profile.calendarUrl}',
+                                      ),
+                                    ),
                                   );
                                 },
                               ),
@@ -196,9 +265,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceAround,
                             children: [
-                              _buildStatItem('${profile.totalPosts}', 'Bài viết'),
-                              _buildStatItem('${profile.totalConnections}', 'Kết nối'),
-                              _buildStatItem('${profile.mentoringSessions}', 'Buổi Mentoring'),
+                              _buildStatItem(
+                                '${profile.totalPosts}',
+                                'Bài viết',
+                              ),
+                              _buildStatItem(
+                                '${profile.totalConnections}',
+                                'Kết nối',
+                              ),
+                              _buildStatItem(
+                                '${profile.mentoringSessions}',
+                                'Buổi Mentoring',
+                              ),
                             ],
                           ),
                         ),
@@ -233,7 +311,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
                   builder: (context, feedState) {
                     if (feedState is FeedLoaded) {
                       // Filter posts written by current user An or student posts
-                      final myPosts = feedState.posts.where((p) => p.authorName.contains('An')).toList();
+                      final myPosts = feedState.posts
+                          .where((p) => p.authorName == profile.name)
+                          .toList();
                       if (myPosts.isEmpty) {
                         return Center(
                           child: Padding(
@@ -241,22 +321,19 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Icon(Icons.article_outlined, size: 48, color: AppColors.textMuted),
+                                const Icon(
+                                  Icons.article_outlined,
+                                  size: 48,
+                                  color: AppColors.textMuted,
+                                ),
                                 const SizedBox(height: 12),
                                 Text(
-                                  'Bạn chưa đăng bài viết nào',
-                                  style: AppTypography.titleSmall.copyWith(color: AppColors.textSecondary),
-                                ),
-                                const SizedBox(height: 8),
-                                ElevatedButton.icon(
-                                  onPressed: () => context.push('/create-post'),
-                                  icon: const Icon(Icons.add, size: 18),
-                                  label: const Text('Đăng bài ngay (FO-01)'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.primary,
-                                    foregroundColor: Colors.white,
+                                  'Backend hiện chưa có API để tải bài viết cá nhân.',
+                                  style: AppTypography.titleSmall.copyWith(
+                                    color: AppColors.textSecondary,
                                   ),
                                 ),
+                                const SizedBox(height: 8),
                               ],
                             ),
                           ),
@@ -269,8 +346,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
                           final post = myPosts[idx];
                           return PostCardWidget(
                             post: post,
-                            onLike: () => context.read<FeedCubit>().toggleLike(post.id),
-                            onTap: () => context.push('/post-detail/${post.id}'),
+                            onLike: () =>
+                                context.read<FeedCubit>().toggleLike(post.id),
+                            onTap: () =>
+                                context.push('/post-detail/${post.id}'),
                           );
                         },
                       );
@@ -294,7 +373,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
                       children: [
                         Text(
                           'Kỹ năng chuyên môn',
-                          style: AppTypography.titleSmall.copyWith(fontWeight: FontWeight.bold),
+                          style: AppTypography.titleSmall.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         const SizedBox(height: 10),
                         Wrap(
@@ -302,7 +383,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
                           runSpacing: 8,
                           children: profile.skills.map((skill) {
                             return Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
                               decoration: BoxDecoration(
                                 color: AppColors.surfaceVariant,
                                 borderRadius: BorderRadius.circular(16),
@@ -321,7 +405,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
                         const SizedBox(height: 24),
                         Text(
                           'Mục tiêu & Quan tâm',
-                          style: AppTypography.titleSmall.copyWith(fontWeight: FontWeight.bold),
+                          style: AppTypography.titleSmall.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         const SizedBox(height: 10),
                         Wrap(
@@ -329,7 +415,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
                           runSpacing: 8,
                           children: profile.interests.map((interest) {
                             return Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
                               decoration: BoxDecoration(
                                 color: AppColors.secondary.withOpacity(0.08),
                                 borderRadius: BorderRadius.circular(16),
@@ -362,15 +451,35 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildInfoRow(Icons.school_outlined, 'Chuyên ngành', profile.major),
+                        _buildInfoRow(
+                          Icons.school_outlined,
+                          'Chuyên ngành',
+                          profile.major,
+                        ),
                         const Divider(height: 24),
-                        _buildInfoRow(Icons.location_on_outlined, 'Cơ sở', profile.campus),
+                        _buildInfoRow(
+                          Icons.location_on_outlined,
+                          'Cơ sở',
+                          profile.campus,
+                        ),
                         const Divider(height: 24),
-                        _buildInfoRow(Icons.badge_outlined, 'Mã số sinh viên', profile.studentId),
+                        _buildInfoRow(
+                          Icons.badge_outlined,
+                          'Mã số sinh viên',
+                          profile.studentId,
+                        ),
                         const Divider(height: 24),
-                        _buildInfoRow(Icons.calendar_today_outlined, 'Khóa đào tạo', profile.cohort),
+                        _buildInfoRow(
+                          Icons.calendar_today_outlined,
+                          'Khóa đào tạo',
+                          profile.cohort,
+                        ),
                         const Divider(height: 24),
-                        _buildInfoRow(Icons.verified_outlined, 'Trạng thái tài khoản', 'Đã xác thực FPT Mail'),
+                        _buildInfoRow(
+                          Icons.verified_outlined,
+                          'Trạng thái tài khoản',
+                          'Đã xác thực FPT Mail',
+                        ),
                       ],
                     ),
                   ),
@@ -388,12 +497,17 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
       children: [
         Text(
           count,
-          style: AppTypography.titleMedium.copyWith(fontWeight: FontWeight.bold, color: AppColors.primary),
+          style: AppTypography.titleMedium.copyWith(
+            fontWeight: FontWeight.bold,
+            color: AppColors.primary,
+          ),
         ),
         const SizedBox(height: 2),
         Text(
           label,
-          style: AppTypography.labelSmall.copyWith(color: AppColors.textSecondary),
+          style: AppTypography.labelSmall.copyWith(
+            color: AppColors.textSecondary,
+          ),
         ),
       ],
     );
@@ -407,9 +521,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> with SingleTicker
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
+            ),
             const SizedBox(height: 2),
-            Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+            Text(
+              value,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            ),
           ],
         ),
       ],
@@ -428,11 +551,12 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   double get maxExtent => _tabBar.preferredSize.height;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(
-      color: AppColors.surface,
-      child: _tabBar,
-    );
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Container(color: AppColors.surface, child: _tabBar);
   }
 
   @override

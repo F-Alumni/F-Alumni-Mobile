@@ -1,6 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:alumni_connect/features/jobs/data/models/job_model.dart';
-import 'package:alumni_connect/features/jobs/data/mock/jobs_mock_data.dart';
 
 abstract class JobsState {}
 
@@ -21,12 +20,16 @@ class JobsLoaded extends JobsState {
 
   List<JobModel> get filteredJobs {
     return jobs.where((job) {
-      final matchesFilter = selectedFilter == 'Tất cả' ||
-          (selectedFilter == 'OJT / Thực tập' && (job.jobType.contains('OJT') || job.jobType.contains('Thực tập'))) ||
+      final matchesFilter =
+          selectedFilter == 'Tất cả' ||
+          (selectedFilter == 'OJT / Thực tập' &&
+              (job.jobType.contains('OJT') ||
+                  job.jobType.contains('Thực tập'))) ||
           (selectedFilter == 'Có Referral' && job.hasReferral) ||
           (selectedFilter == 'Full-time' && job.jobType.contains('Full-time'));
 
-      final matchesQuery = searchQuery.isEmpty ||
+      final matchesQuery =
+          searchQuery.isEmpty ||
           job.title.toLowerCase().contains(searchQuery.toLowerCase()) ||
           job.companyName.toLowerCase().contains(searchQuery.toLowerCase()) ||
           job.location.toLowerCase().contains(searchQuery.toLowerCase());
@@ -53,7 +56,8 @@ class JobsCubit extends Cubit<JobsState> {
 
   void loadJobs() {
     emit(JobsLoading());
-    emit(JobsLoaded(jobs: JobsMockData.mockJobs));
+    // The checked-in backend services do not expose a jobs endpoint yet.
+    emit(JobsLoaded(jobs: const []));
   }
 
   void filterJobs(String filter) {

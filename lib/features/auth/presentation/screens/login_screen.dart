@@ -33,9 +33,9 @@ class _LoginScreenState extends State<LoginScreen> {
   void _loginWithEmail() {
     if (_formKey.currentState?.validate() ?? false) {
       context.read<AuthCubit>().loginWithEmailPassword(
-            email: _emailController.text.trim(),
-            password: _passwordController.text,
-          );
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
     }
   }
 
@@ -116,7 +116,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             children: [
                               const Expanded(child: Divider()),
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                ),
                                 child: Text(
                                   'hoặc',
                                   style: AppTypography.bodySmall.copyWith(
@@ -134,13 +136,21 @@ class _LoginScreenState extends State<LoginScreen> {
                             SizedBox(
                               width: double.infinity,
                               child: OutlinedButton.icon(
-                                onPressed: () => setState(() => _isEmailMode = true),
-                                icon: const Icon(Icons.email_outlined, size: 20),
+                                onPressed: () =>
+                                    setState(() => _isEmailMode = true),
+                                icon: const Icon(
+                                  Icons.email_outlined,
+                                  size: 20,
+                                ),
                                 label: const Text('Đăng nhập bằng FPT Mail'),
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: AppColors.textPrimary,
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
-                                  side: const BorderSide(color: AppColors.border),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                  side: const BorderSide(
+                                    color: AppColors.border,
+                                  ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
@@ -176,22 +186,26 @@ class _LoginScreenState extends State<LoginScreen> {
                                   TextFormField(
                                     controller: _passwordController,
                                     obscureText: _obscurePassword,
-                                    decoration: _inputDecoration(
-                                      label: 'Mật khẩu',
-                                      hint: '••••••••',
-                                      icon: Icons.lock_outline,
-                                    ).copyWith(
-                                      suffixIcon: IconButton(
-                                        icon: Icon(
-                                          _obscurePassword
-                                              ? Icons.visibility_off_outlined
-                                              : Icons.visibility_outlined,
-                                          color: AppColors.textSecondary,
+                                    decoration:
+                                        _inputDecoration(
+                                          label: 'Mật khẩu',
+                                          hint: '••••••••',
+                                          icon: Icons.lock_outline,
+                                        ).copyWith(
+                                          suffixIcon: IconButton(
+                                            icon: Icon(
+                                              _obscurePassword
+                                                  ? Icons
+                                                        .visibility_off_outlined
+                                                  : Icons.visibility_outlined,
+                                              color: AppColors.textSecondary,
+                                            ),
+                                            onPressed: () => setState(
+                                              () => _obscurePassword =
+                                                  !_obscurePassword,
+                                            ),
+                                          ),
                                         ),
-                                        onPressed: () => setState(
-                                            () => _obscurePassword = !_obscurePassword),
-                                      ),
-                                    ),
                                     validator: (val) {
                                       if (val == null || val.isEmpty) {
                                         return 'Vui lòng nhập mật khẩu';
@@ -208,14 +222,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                   Align(
                                     alignment: Alignment.centerRight,
                                     child: TextButton(
-                                      onPressed: () {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                                'Link đặt lại mật khẩu đã được gửi về FPT Mail của bạn'),
-                                          ),
-                                        );
-                                      },
+                                      onPressed: () =>
+                                          context.push('/forgot-password'),
                                       child: Text(
                                         'Quên mật khẩu?',
                                         style: AppTypography.bodySmall.copyWith(
@@ -231,13 +239,19 @@ class _LoginScreenState extends State<LoginScreen> {
                                   SizedBox(
                                     width: double.infinity,
                                     child: ElevatedButton(
-                                      onPressed: isLoading ? null : _loginWithEmail,
+                                      onPressed: isLoading
+                                          ? null
+                                          : _loginWithEmail,
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: AppColors.primary,
                                         foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(vertical: 16),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 16,
+                                        ),
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(12),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
                                         ),
                                         elevation: 0,
                                       ),
@@ -252,21 +266,29 @@ class _LoginScreenState extends State<LoginScreen> {
                                             )
                                           : Text(
                                               'Đăng nhập',
-                                              style: AppTypography.titleSmall.copyWith(
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white,
-                                              ),
+                                              style: AppTypography.titleSmall
+                                                  .copyWith(
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.white,
+                                                  ),
                                             ),
                                     ),
                                   ),
                                   const SizedBox(height: 10),
                                   TextButton(
-                                    onPressed: () => setState(() => _isEmailMode = false),
+                                    onPressed: () =>
+                                        setState(() => _isEmailMode = false),
                                     child: Text(
                                       '← Quay lại đăng nhập Google',
                                       style: AppTypography.bodySmall.copyWith(
                                         color: AppColors.textSecondary,
                                       ),
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => context.push('/register'),
+                                    child: const Text(
+                                      'Chưa có tài khoản? Đăng ký',
                                     ),
                                   ),
                                 ],
@@ -284,12 +306,17 @@ class _LoginScreenState extends State<LoginScreen> {
                       decoration: BoxDecoration(
                         color: AppColors.secondary.withOpacity(0.08),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.secondary.withOpacity(0.2)),
+                        border: Border.all(
+                          color: AppColors.secondary.withOpacity(0.2),
+                        ),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.info_outline,
-                              size: 18, color: AppColors.secondary),
+                          const Icon(
+                            Icons.info_outline,
+                            size: 18,
+                            color: AppColors.secondary,
+                          ),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(

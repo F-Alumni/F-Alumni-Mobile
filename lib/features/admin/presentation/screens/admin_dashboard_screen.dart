@@ -14,7 +14,8 @@ class AdminDashboardScreen extends StatefulWidget {
   State<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
 }
 
-class _AdminDashboardScreenState extends State<AdminDashboardScreen> with SingleTickerProviderStateMixin {
+class _AdminDashboardScreenState extends State<AdminDashboardScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -45,11 +46,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
           children: [
             Text(
               'Trung tâm Quản trị Admin',
-              style: AppTypography.titleMedium.copyWith(fontWeight: FontWeight.bold),
+              style: AppTypography.titleMedium.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             Text(
               'Hệ thống điều hành Alumni Connect (AD-01 → AD-08)',
-              style: AppTypography.labelSmall.copyWith(color: AppColors.textSecondary),
+              style: AppTypography.labelSmall.copyWith(
+                color: AppColors.textSecondary,
+              ),
             ),
           ],
         ),
@@ -80,7 +85,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
     return BlocBuilder<AdminCubit, AdminState>(
       builder: (context, state) {
         if (state is! AdminLoaded) {
-          return const Center(child: CircularProgressIndicator());
+          return Center(
+            child: state is AdminError
+                ? Text(state.message)
+                : const CircularProgressIndicator(),
+          );
         }
 
         return SingleChildScrollView(
@@ -90,7 +99,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
             children: [
               Text(
                 'Chỉ số tổng quan hệ thống (AD-08)',
-                style: AppTypography.titleSmall.copyWith(fontWeight: FontWeight.bold),
+                style: AppTypography.titleSmall.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 12),
 
@@ -101,7 +112,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
                     child: _buildMetricCard(
                       title: 'Tổng người dùng',
                       value: '${state.totalUsers}',
-                      subtitle: '+12% kỳ Fall này',
+                      subtitle: 'Tổng số từ User Service',
                       icon: Icons.people,
                       color: AppColors.primary,
                     ),
@@ -110,8 +121,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
                   Expanded(
                     child: _buildMetricCard(
                       title: 'Alumni xác thực',
-                      value: '${state.verifiedAlumniCount}',
-                      subtitle: 'Đã cấp tích xanh',
+                      value: state.verifiedAlumniCount < 0
+                          ? '—'
+                          : '${state.verifiedAlumniCount}',
+                      subtitle: 'Chưa có API thống kê xác thực',
                       icon: Icons.verified,
                       color: AppColors.accent,
                     ),
@@ -124,8 +137,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
                   Expanded(
                     child: _buildMetricCard(
                       title: 'Sinh viên FPT',
-                      value: '${state.activeStudentsCount}',
-                      subtitle: 'Đang theo học',
+                      value: state.activeStudentsCount < 0
+                          ? '—'
+                          : '${state.activeStudentsCount}',
+                      subtitle: 'Chưa có API thống kê sinh viên',
                       icon: Icons.school,
                       color: AppColors.secondary,
                     ),
@@ -134,8 +149,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
                   Expanded(
                     child: _buildMetricCard(
                       title: 'Báo cáo cần xử lý',
-                      value: '${state.unresolvedReportsCount}',
-                      subtitle: 'Vi phạm nội quy',
+                      value: state.unresolvedReportsCount < 0
+                          ? '—'
+                          : '${state.unresolvedReportsCount}',
+                      subtitle: 'Chưa có API báo cáo kiểm duyệt',
                       icon: Icons.warning_amber_rounded,
                       color: AppColors.error,
                     ),
@@ -144,29 +161,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
               ),
               const SizedBox(height: 24),
 
-              // Campus Distribution Box
               Text(
-                'Phân bố thành viên theo Campus',
-                style: AppTypography.titleSmall.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Column(
-                  children: [
-                    _buildCampusBar('FPT Đà Nẵng', 0.35, '1,720 thành viên'),
-                    const SizedBox(height: 10),
-                    _buildCampusBar('FPT Hòa Lạc (HN)', 0.30, '1,450 thành viên'),
-                    const SizedBox(height: 10),
-                    _buildCampusBar('FPT TP.HCM', 0.25, '1,200 thành viên'),
-                    const SizedBox(height: 10),
-                    _buildCampusBar('FPT Quy Nhơn & Cần Thơ', 0.10, '480 thành viên'),
-                  ],
+                'Phân bố theo campus chưa có API thống kê',
+                style: AppTypography.titleSmall.copyWith(
+                  fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 24),
@@ -174,15 +172,23 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
               // Quick Actions
               Text(
                 'Tác vụ quản trị nhanh',
-                style: AppTypography.titleSmall.copyWith(fontWeight: FontWeight.bold),
+                style: AppTypography.titleSmall.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      icon: const Icon(Icons.manage_accounts, color: AppColors.secondary),
-                      label: const Text('Xem User', style: TextStyle(color: AppColors.secondary)),
+                      icon: const Icon(
+                        Icons.manage_accounts,
+                        color: AppColors.secondary,
+                      ),
+                      label: const Text(
+                        'Xem User',
+                        style: TextStyle(color: AppColors.secondary),
+                      ),
                       onPressed: () => _tabController.animateTo(1),
                     ),
                   ),
@@ -190,7 +196,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
                   Expanded(
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.security, color: AppColors.error),
-                      label: const Text('Xử lý vi phạm', style: TextStyle(color: AppColors.error)),
+                      label: const Text(
+                        'Xử lý vi phạm',
+                        style: TextStyle(color: AppColors.error),
+                      ),
                       onPressed: () => _tabController.animateTo(2),
                     ),
                   ),
@@ -223,45 +232,32 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: AppTypography.labelSmall.copyWith(color: AppColors.textSecondary)),
+              Text(
+                title,
+                style: AppTypography.labelSmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
               Icon(icon, color: color, size: 20),
             ],
           ),
           const SizedBox(height: 8),
           Text(
             value,
-            style: AppTypography.headlineSmall.copyWith(fontWeight: FontWeight.bold, color: color),
+            style: AppTypography.headlineSmall.copyWith(
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             subtitle,
-            style: AppTypography.labelSmall.copyWith(color: AppColors.textSecondary),
+            style: AppTypography.labelSmall.copyWith(
+              color: AppColors.textSecondary,
+            ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildCampusBar(String campus, double progress, String detail) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(campus, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-            Text(detail, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-          ],
-        ),
-        const SizedBox(height: 6),
-        LinearProgressIndicator(
-          value: progress,
-          backgroundColor: AppColors.surfaceVariant,
-          valueColor: const AlwaysStoppedAnimation<Color>(AppColors.secondary),
-          borderRadius: BorderRadius.circular(4),
-          minHeight: 6,
-        ),
-      ],
     );
   }
 }

@@ -18,6 +18,7 @@ class MentorStory {
 
 class CommentItem {
   final String id;
+  final String authorId;
   final String authorName;
   final String authorRole;
   final String authorAvatar;
@@ -26,10 +27,12 @@ class CommentItem {
   final int likes;
   final bool isLiked;
   final bool isAuthor;
+  final bool isAcceptedAnswer;
   final List<CommentItem> replies;
 
   const CommentItem({
     required this.id,
+    this.authorId = '',
     required this.authorName,
     required this.authorRole,
     required this.authorAvatar,
@@ -38,12 +41,14 @@ class CommentItem {
     this.likes = 0,
     this.isLiked = false,
     this.isAuthor = false,
+    this.isAcceptedAnswer = false,
     this.replies = const [],
   });
 
   factory CommentItem.fromJson(Map<String, dynamic> json) {
     return CommentItem(
       id: json['id'] as String? ?? '',
+      authorId: json['authorId'] as String? ?? '',
       authorName: json['authorName'] as String? ?? '',
       authorRole: json['authorRole'] as String? ?? '',
       authorAvatar: json['authorAvatar'] as String? ?? '',
@@ -52,7 +57,9 @@ class CommentItem {
       likes: json['likes'] as int? ?? 0,
       isLiked: json['isLiked'] as bool? ?? false,
       isAuthor: json['isAuthor'] as bool? ?? false,
-      replies: (json['replies'] as List<dynamic>?)
+      isAcceptedAnswer: json['isAcceptedAnswer'] as bool? ?? false,
+      replies:
+          (json['replies'] as List<dynamic>?)
               ?.map((e) => CommentItem.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
@@ -60,19 +67,23 @@ class CommentItem {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'authorName': authorName,
-        'authorRole': authorRole,
-        'authorAvatar': authorAvatar,
-        'timeAgo': timeAgo,
-        'content': content,
-        'likes': likes,
-        'isLiked': isLiked,
-        'isAuthor': isAuthor,
-        'replies': replies.map((e) => e.toJson()).toList(),
-      };
+    'id': id,
+    'authorId': authorId,
+    'authorName': authorName,
+    'authorRole': authorRole,
+    'authorAvatar': authorAvatar,
+    'timeAgo': timeAgo,
+    'content': content,
+    'likes': likes,
+    'isLiked': isLiked,
+    'isAuthor': isAuthor,
+    'isAcceptedAnswer': isAcceptedAnswer,
+    'replies': replies.map((e) => e.toJson()).toList(),
+  };
 
+  CommentItem copyWith({
     String? id,
+    String? authorId,
     String? authorName,
     String? authorRole,
     String? authorAvatar,
@@ -81,10 +92,12 @@ class CommentItem {
     int? likes,
     bool? isLiked,
     bool? isAuthor,
+    bool? isAcceptedAnswer,
     List<CommentItem>? replies,
   }) {
     return CommentItem(
       id: id ?? this.id,
+      authorId: authorId ?? this.authorId,
       authorName: authorName ?? this.authorName,
       authorRole: authorRole ?? this.authorRole,
       authorAvatar: authorAvatar ?? this.authorAvatar,
@@ -93,6 +106,7 @@ class CommentItem {
       likes: likes ?? this.likes,
       isLiked: isLiked ?? this.isLiked,
       isAuthor: isAuthor ?? this.isAuthor,
+      isAcceptedAnswer: isAcceptedAnswer ?? this.isAcceptedAnswer,
       replies: replies ?? this.replies,
     );
   }
@@ -110,7 +124,9 @@ class PostItem {
   final String? attachmentTitle;
   final String? attachmentSubtitle;
   final String? attachmentImageUrl;
+  final List<String> attachmentImageUrls;
   final String campus;
+  final String major;
   final String category;
   final List<String> tags;
   final int likes;
@@ -118,6 +134,7 @@ class PostItem {
   final int shares;
   final bool isLiked;
   final bool isSaved;
+  final bool isAnswered;
   final bool isJobPost;
   final String? jobTitle;
   final String? jobSalary;
@@ -137,7 +154,9 @@ class PostItem {
     this.attachmentTitle,
     this.attachmentSubtitle,
     this.attachmentImageUrl,
+    this.attachmentImageUrls = const [],
     this.campus = 'Toàn quốc',
+    this.major = 'All',
     this.category = 'Chia sẻ kinh nghiệm',
     required this.tags,
     required this.likes,
@@ -145,6 +164,7 @@ class PostItem {
     required this.shares,
     this.isLiked = false,
     this.isSaved = false,
+    this.isAnswered = false,
     this.isJobPost = false,
     this.jobTitle,
     this.jobSalary,
@@ -166,20 +186,29 @@ class PostItem {
       attachmentTitle: json['attachmentTitle'] as String?,
       attachmentSubtitle: json['attachmentSubtitle'] as String?,
       attachmentImageUrl: json['attachmentImageUrl'] as String?,
+      attachmentImageUrls:
+          (json['attachmentImageUrls'] as List<dynamic>? ?? const [])
+              .map((e) => e.toString())
+              .toList(),
       campus: json['campus'] as String? ?? 'Toàn quốc',
+      major: json['major'] as String? ?? 'All',
       category: json['category'] as String? ?? 'Chia sẻ kinh nghiệm',
-      tags: (json['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
+      tags:
+          (json['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ??
+          const [],
       likes: json['likes'] as int? ?? 0,
       comments: json['comments'] as int? ?? 0,
       shares: json['shares'] as int? ?? 0,
       isLiked: json['isLiked'] as bool? ?? false,
       isSaved: json['isSaved'] as bool? ?? false,
+      isAnswered: json['isAnswered'] as bool? ?? false,
       isJobPost: json['isJobPost'] as bool? ?? false,
       jobTitle: json['jobTitle'] as String?,
       jobSalary: json['jobSalary'] as String?,
       jobPerks: json['jobPerks'] as String?,
       companyName: json['companyName'] as String?,
-      commentList: (json['commentList'] as List<dynamic>?)
+      commentList:
+          (json['commentList'] as List<dynamic>?)
               ?.map((e) => CommentItem.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
@@ -187,32 +216,35 @@ class PostItem {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'authorName': authorName,
-        'authorRole': authorRole,
-        'authorAvatar': authorAvatar,
-        'timeAgo': timeAgo,
-        'isVerified': isVerified,
-        'title': title,
-        'content': content,
-        'attachmentTitle': attachmentTitle,
-        'attachmentSubtitle': attachmentSubtitle,
-        'attachmentImageUrl': attachmentImageUrl,
-        'campus': campus,
-        'category': category,
-        'tags': tags,
-        'likes': likes,
-        'comments': comments,
-        'shares': shares,
-        'isLiked': isLiked,
-        'isSaved': isSaved,
-        'isJobPost': isJobPost,
-        'jobTitle': jobTitle,
-        'jobSalary': jobSalary,
-        'jobPerks': jobPerks,
-        'companyName': companyName,
-        'commentList': commentList.map((e) => e.toJson()).toList(),
-      };
+    'id': id,
+    'authorName': authorName,
+    'authorRole': authorRole,
+    'authorAvatar': authorAvatar,
+    'timeAgo': timeAgo,
+    'isVerified': isVerified,
+    'title': title,
+    'content': content,
+    'attachmentTitle': attachmentTitle,
+    'attachmentSubtitle': attachmentSubtitle,
+    'attachmentImageUrl': attachmentImageUrl,
+    'attachmentImageUrls': attachmentImageUrls,
+    'campus': campus,
+    'major': major,
+    'category': category,
+    'tags': tags,
+    'likes': likes,
+    'comments': comments,
+    'shares': shares,
+    'isLiked': isLiked,
+    'isSaved': isSaved,
+    'isAnswered': isAnswered,
+    'isJobPost': isJobPost,
+    'jobTitle': jobTitle,
+    'jobSalary': jobSalary,
+    'jobPerks': jobPerks,
+    'companyName': companyName,
+    'commentList': commentList.map((e) => e.toJson()).toList(),
+  };
 
   PostItem copyWith({
     String? id,
@@ -226,7 +258,9 @@ class PostItem {
     String? attachmentTitle,
     String? attachmentSubtitle,
     String? attachmentImageUrl,
+    List<String>? attachmentImageUrls,
     String? campus,
+    String? major,
     String? category,
     List<String>? tags,
     int? likes,
@@ -234,6 +268,7 @@ class PostItem {
     int? shares,
     bool? isLiked,
     bool? isSaved,
+    bool? isAnswered,
     bool? isJobPost,
     String? jobTitle,
     String? jobSalary,
@@ -253,7 +288,9 @@ class PostItem {
       attachmentTitle: attachmentTitle ?? this.attachmentTitle,
       attachmentSubtitle: attachmentSubtitle ?? this.attachmentSubtitle,
       attachmentImageUrl: attachmentImageUrl ?? this.attachmentImageUrl,
+      attachmentImageUrls: attachmentImageUrls ?? this.attachmentImageUrls,
       campus: campus ?? this.campus,
+      major: major ?? this.major,
       category: category ?? this.category,
       tags: tags ?? this.tags,
       likes: likes ?? this.likes,
@@ -261,6 +298,7 @@ class PostItem {
       shares: shares ?? this.shares,
       isLiked: isLiked ?? this.isLiked,
       isSaved: isSaved ?? this.isSaved,
+      isAnswered: isAnswered ?? this.isAnswered,
       isJobPost: isJobPost ?? this.isJobPost,
       jobTitle: jobTitle ?? this.jobTitle,
       jobSalary: jobSalary ?? this.jobSalary,

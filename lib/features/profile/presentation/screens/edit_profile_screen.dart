@@ -6,7 +6,6 @@ import 'package:alumni_connect/core/theme/app_typography.dart';
 import 'package:alumni_connect/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:alumni_connect/features/profile/presentation/cubit/profile_cubit.dart';
 
-
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
 
@@ -20,13 +19,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _majorController;
   late TextEditingController _cohortController;
   late TextEditingController _calendarController;
+  late TextEditingController _avatarController;
   late TextEditingController _newSkillController;
 
   late String _selectedCampus;
-  late bool _isAlumni;
+  late bool _isVerified;
   late bool _isPublicToRecruiters;
-  late bool _showContactInfo;
-  late bool _allowMessagesFromStrangers;
+  late bool _showEmailPublicly;
+  late bool _showPhonePublicly;
+  late bool _showCalendarPublicly;
   late List<String> _skills;
 
   final List<String> _campusOptions = [
@@ -40,19 +41,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
-    final profile = (context.read<ProfileCubit>().state as ProfileLoaded).profile;
+    final profile =
+        (context.read<ProfileCubit>().state as ProfileLoaded).profile;
     _nameController = TextEditingController(text: profile.name);
     _bioController = TextEditingController(text: profile.bio);
     _majorController = TextEditingController(text: profile.major);
     _cohortController = TextEditingController(text: profile.cohort);
-    _calendarController = TextEditingController(text: profile.calendarUrl ?? '');
+    _calendarController = TextEditingController(
+      text: profile.calendarUrl ?? '',
+    );
+    _avatarController = TextEditingController(text: profile.avatarUrl);
     _newSkillController = TextEditingController();
 
     _selectedCampus = profile.campus;
-    _isAlumni = profile.isAlumni;
+    _isVerified = profile.isVerified;
     _isPublicToRecruiters = profile.isPublicToRecruiters;
-    _showContactInfo = profile.showContactInfo;
-    _allowMessagesFromStrangers = profile.allowMessagesFromStrangers;
+    _showEmailPublicly = profile.showEmailPublicly;
+    _showPhonePublicly = profile.showPhonePublicly;
+    _showCalendarPublicly = profile.showCalendarPublicly;
     _skills = List.from(profile.skills);
   }
 
@@ -63,28 +69,60 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _majorController.dispose();
     _cohortController.dispose();
     _calendarController.dispose();
+    _avatarController.dispose();
     _newSkillController.dispose();
     super.dispose();
   }
 
-  void _saveProfile() {
-    context.read<ProfileCubit>().updateProfile(
-          name: _nameController.text.trim(),
-          bio: _bioController.text.trim(),
-          major: _majorController.text.trim(),
-          cohort: _cohortController.text.trim(),
-          campus: _selectedCampus,
-          calendarUrl: _calendarController.text.trim(),
-          skills: _skills,
-          isAlumni: _isAlumni,
-        );
+  Future<void> _saveProfile() async {
+    final cubit = context.read<ProfileCubit>();
+    final profileSaved = await cubit.updateProfile(
+      name: _nameController.text.trim(),
+      bio: _bioController.text.trim(),
+      major: _majorController.text.trim(),
+      cohort: _cohortController.text.trim(),
+      campus: _selectedCampus,
+      calendarUrl: _calendarController.text.trim(),
+      avatarUrl: _avatarController.text.trim(),
+      skills: _skills,
+    );
 
-    context.read<ProfileCubit>().updatePrivacySettings(
-          isPublicToRecruiters: _isPublicToRecruiters,
-          showContactInfo: _showContactInfo,
-          allowMessagesFromStrangers: _allowMessagesFromStrangers,
-        );
+    if (!profileSaved) {
+      if (!mounted) return;
+      final state = cubit.state;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            state is ProfileError ? state.message : 'Không thể lưu hồ sơ.',
+          ),
+        ),
+      );
+      return;
+    }
 
+    final privacySaved = await cubit.updatePrivacySettings(
+      isPublicToRecruiters: _isPublicToRecruiters,
+      showEmailPublicly: _showEmailPublicly,
+      showPhonePublicly: _showPhonePublicly,
+      showCalendarPublicly: _showCalendarPublicly,
+    );
+
+    if (!privacySaved) {
+      if (!mounted) return;
+      final state = cubit.state;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            state is ProfileError
+                ? state.message
+                : 'Không thể lưu cài đặt riêng tư.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (!mounted) return;
     context.pop();
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -179,46 +217,84 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // User Avatar Edit Section
+            // User Avatar Edit Section (US-04)
             Center(
-              child: Stack(
-                children: [
-                  CircleAvatar(
-                    radius: 48,
-                    backgroundImage: const NetworkImage(
-                      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
+              child: GestureDetector(
+                onTap: _showAvatarPickerModal,
+                child: Tooltip(
+                  message: 'Chạm để đổi ảnh đại diện (US-04)',
+                  child: Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 48,
+                        backgroundColor: AppColors.surfaceVariant,
+                        backgroundImage: _avatarController.text.trim().isEmpty
+                            ? null
+                            : NetworkImage(_avatarController.text.trim()),
+                        child: _avatarController.text.trim().isEmpty
+                            ? const Icon(Icons.person_outline, size: 42)
+                            : null,
                       ),
-                      child: const Icon(Icons.camera_alt, size: 18, color: Colors.white),
-                    ),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: const BoxDecoration(
+                            color: AppColors.primary,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt,
+                            size: 18,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 6),
+            Center(
+              child: TextButton.icon(
+                onPressed: _showAvatarPickerModal,
+                icon: const Icon(Icons.photo_camera_back_outlined, size: 16),
+                label: const Text(
+                  'Thay đổi ảnh đại diện',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
             Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.accent.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: const [
-                    Icon(Icons.shield_outlined, size: 14, color: AppColors.accent),
-                    SizedBox(width: 4),
+                  children: [
+                    Icon(
+                      Icons.shield_outlined,
+                      size: 14,
+                      color: AppColors.accent,
+                    ),
+                    const SizedBox(width: 4),
                     Text(
-                      'Sinh viên K16 • FPT Verified',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.accent),
+                      _isVerified ? 'Email đã xác minh' : 'Email chưa xác minh',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: _isVerified
+                            ? AppColors.accent
+                            : AppColors.textSecondary,
+                      ),
                     ),
                   ],
                 ),
@@ -244,10 +320,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               value: _selectedCampus,
               decoration: InputDecoration(
                 labelText: 'Cơ sở Đại học FPT',
-                prefixIcon: const Icon(Icons.location_on_outlined, color: AppColors.secondary),
+                prefixIcon: const Icon(
+                  Icons.location_on_outlined,
+                  color: AppColors.secondary,
+                ),
                 filled: true,
                 fillColor: AppColors.surface,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               items: _campusOptions.map((c) {
                 return DropdownMenuItem(value: c, child: Text(c));
@@ -263,7 +344,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               children: [
                 Expanded(
                   flex: 2,
-                  child: _buildTextField('Ngành học', _majorController, Icons.school_outlined),
+                  child: _buildTextField(
+                    'Ngành học',
+                    _majorController,
+                    Icons.school_outlined,
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -274,12 +359,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             const SizedBox(height: 12),
 
             // Google Calendar Link (US-11)
-            _buildTextField(
-              'Link Google Calendar (US-11)',
-              _calendarController,
-              Icons.calendar_month_outlined,
-              hintText: 'https://calendar.google.com/...',
-            ),
+            // Google Calendar Integration (US-11)
+            _buildCalendarIntegrationCard(),
             const SizedBox(height: 16),
 
             // Skills & Interests
@@ -294,7 +375,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   backgroundColor: AppColors.surfaceVariant,
                   deleteIcon: const Icon(Icons.close, size: 16),
                   onDeleted: () => _removeSkill(skill),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 );
               }).toList(),
             ),
@@ -308,19 +391,36 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       hintText: 'Thêm kỹ năng mới (VD: Docker, React Native)',
                       filled: true,
                       fillColor: AppColors.surface,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 IconButton(
-                  icon: const Icon(Icons.add_circle, color: AppColors.primary, size: 32),
+                  icon: const Icon(
+                    Icons.add_circle,
+                    color: AppColors.primary,
+                    size: 32,
+                  ),
                   onPressed: _addSkill,
                 ),
               ],
             ),
             const SizedBox(height: 24),
+
+            _buildTextField(
+              'URL ảnh đại diện',
+              _avatarController,
+              Icons.account_circle_outlined,
+              hintText: 'https://...',
+            ),
+            const SizedBox(height: 12),
 
             // Section 2: Quyền riêng tư & Bảo mật (US-08, US-09)
             _buildSectionHeader('Quyền riêng tư & Bảo mật (US-08, US-09)'),
@@ -334,36 +434,73 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               child: Column(
                 children: [
                   SwitchListTile(
-                    title: const Text('Công khai hồ sơ với nhà tuyển dụng', style: TextStyle(fontWeight: FontWeight.w600)),
+                    title: const Text(
+                      'Hiển thị công ty trên hồ sơ công khai',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
                     subtitle: const Text(
-                      'Cho phép cựu sinh viên và HR tìm thấy hồ sơ của bạn để giới thiệu việc làm (Referral)',
+                      'Điều khiển trường công ty hiện tại trong hồ sơ công khai.',
                       style: TextStyle(fontSize: 12),
                     ),
                     value: _isPublicToRecruiters,
                     activeColor: AppColors.primary,
-                    onChanged: (val) => setState(() => _isPublicToRecruiters = val),
+                    onChanged: (val) =>
+                        setState(() => _isPublicToRecruiters = val),
                   ),
                   const Divider(height: 1),
                   SwitchListTile(
-                    title: const Text('Hiển thị email & số điện thoại', style: TextStyle(fontWeight: FontWeight.w600)),
-                    subtitle: const Text(
-                      'Chỉ hiển thị cho người có trong danh sách kết nối của bạn',
-                      style: TextStyle(fontSize: 12),
+                    title: const Text(
+                      'Hiển thị link Google Calendar',
+                      style: TextStyle(fontWeight: FontWeight.w600),
                     ),
-                    value: _showContactInfo,
+                    value: _showCalendarPublicly,
                     activeColor: AppColors.primary,
-                    onChanged: (val) => setState(() => _showContactInfo = val),
+                    onChanged: (val) =>
+                        setState(() => _showCalendarPublicly = val),
                   ),
                   const Divider(height: 1),
                   SwitchListTile(
-                    title: const Text('Cho phép nhận tin nhắn từ người lạ', style: TextStyle(fontWeight: FontWeight.w600)),
+                    title: const Text(
+                      'Hiển thị email',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
                     subtitle: const Text(
-                      'Người chưa kết nối có thể gửi lời mời nhắn tin',
+                      'Cho phép người khác xem email trên hồ sơ công khai.',
                       style: TextStyle(fontSize: 12),
                     ),
-                    value: _allowMessagesFromStrangers,
+                    value: _showEmailPublicly,
                     activeColor: AppColors.primary,
-                    onChanged: (val) => setState(() => _allowMessagesFromStrangers = val),
+                    onChanged: (val) =>
+                        setState(() => _showEmailPublicly = val),
+                  ),
+                  const Divider(height: 1),
+                  SwitchListTile(
+                    title: const Text(
+                      'Hiển thị số điện thoại',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: const Text(
+                      'Cho phép người khác xem số điện thoại trên hồ sơ công khai.',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    value: _showPhonePublicly,
+                    activeColor: AppColors.primary,
+                    onChanged: (val) =>
+                        setState(() => _showPhonePublicly = val),
+                  ),
+                  const Divider(height: 1),
+                  SwitchListTile(
+                    title: const Text(
+                      'Cho phép nhận tin nhắn từ người lạ',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: const Text(
+                      'Backend chưa có cài đặt cho phép hoặc chặn tin nhắn từ người lạ.',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    value: false,
+                    activeColor: AppColors.primary,
+                    onChanged: null,
                   ),
                 ],
               ),
@@ -372,6 +509,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
             // Section 3: Quản lý tài khoản (Đổi MK, Đăng xuất - US-08)
             _buildSectionHeader('Tài khoản & Phiên làm việc'),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => context.push('/change-password'),
+                icon: const Icon(Icons.lock_reset),
+                label: const Text('Đổi mật khẩu (US-07)'),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => context.push('/blocked-users'),
+                icon: const Icon(Icons.block_outlined),
+                label: const Text('Quản lý tài khoản đã chặn (US-10)'),
+              ),
+            ),
             const SizedBox(height: 12),
             Container(
               decoration: BoxDecoration(
@@ -382,20 +537,28 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               child: Column(
                 children: [
                   ListTile(
-                    leading: const Icon(Icons.lock_outline, color: AppColors.secondary),
+                    leading: const Icon(
+                      Icons.lock_outline,
+                      color: AppColors.secondary,
+                    ),
                     title: const Text('Đổi mật khẩu tài khoản'),
                     trailing: const Icon(Icons.chevron_right),
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Liên kết đổi mật khẩu đã gửi về email FPT')),
-                      );
-                    },
+                    onTap: () => context.push('/change-password'),
                   ),
                   const Divider(height: 1),
                   ListTile(
-                    leading: const Icon(Icons.verified_user_outlined, color: AppColors.accent),
-                    title: const Text('Xác minh tài khoản Alumni'),
-                    trailing: const Text('Đã kích hoạt', style: TextStyle(color: AppColors.accent, fontSize: 12)),
+                    leading: const Icon(
+                      Icons.verified_user_outlined,
+                      color: AppColors.accent,
+                    ),
+                    title: const Text('Trạng thái xác minh email'),
+                    trailing: Text(
+                      _isVerified ? 'Đã xác minh' : 'Chưa xác minh',
+                      style: TextStyle(
+                        color: _isVerified ? AppColors.accent : AppColors.error,
+                        fontSize: 12,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -408,10 +571,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               child: OutlinedButton.icon(
                 onPressed: _showLogoutDialog,
                 icon: const Icon(Icons.logout, color: AppColors.error),
-                label: const Text('Đăng xuất khỏi thiết bị (US-08)', style: TextStyle(color: AppColors.error)),
+                label: const Text(
+                  'Đăng xuất khỏi thiết bị (US-08)',
+                  style: TextStyle(color: AppColors.error),
+                ),
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: AppColors.error),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
               ),
@@ -429,6 +597,300 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       style: AppTypography.titleSmall.copyWith(
         fontWeight: FontWeight.bold,
         color: AppColors.textPrimary,
+      ),
+    );
+  }
+
+  void _showAvatarPickerModal() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Chọn ảnh đại diện (US-04)',
+                    style: AppTypography.titleSmall.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.photo_library_outlined,
+                    color: AppColors.primary,
+                  ),
+                ),
+                title: const Text('Chọn ảnh từ thư viện thiết bị'),
+                subtitle: const Text('BE hiện chưa có API tải ảnh lên'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Chưa thể tải ảnh từ thiết bị lên. Hiện có thể lưu ảnh bằng URL.',
+                      ),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.secondary.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.camera_alt_outlined,
+                    color: AppColors.secondary,
+                  ),
+                ),
+                title: const Text('Chụp ảnh mới bằng Camera'),
+                subtitle: const Text('BE hiện chưa có API tải ảnh lên'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Chưa thể tải ảnh từ camera lên. Hiện có thể lưu ảnh bằng URL.',
+                      ),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCalendarIntegrationCard() {
+    final hasCalendar = _calendarController.text.trim().isNotEmpty;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: hasCalendar
+              ? AppColors.accent.withOpacity(0.5)
+              : AppColors.border,
+          width: hasCalendar ? 1.4 : 1.0,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.calendar_month,
+                  color: AppColors.primary,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Liên kết Google Calendar (US-11)',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      hasCalendar
+                          ? 'Đã lưu đường dẫn lịch hẹn'
+                          : 'Chưa lưu đường dẫn lịch hẹn',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: hasCalendar
+                            ? AppColors.accent
+                            : AppColors.textSecondary,
+                        fontWeight: hasCalendar
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: hasCalendar
+                      ? AppColors.accent.withOpacity(0.12)
+                      : AppColors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      hasCalendar ? Icons.check_circle : Icons.link_off,
+                      size: 12,
+                      color: hasCalendar
+                          ? AppColors.accent
+                          : AppColors.textSecondary,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      hasCalendar ? 'Đã lưu' : 'Chưa có',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: hasCalendar
+                            ? AppColors.accent
+                            : AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _calendarController,
+            onChanged: (val) => setState(() {}),
+            decoration: InputDecoration(
+              hintText: 'https://calendar.google.com/calendar/u/0/...',
+              hintStyle: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textMuted,
+              ),
+              filled: true,
+              fillColor: AppColors.surfaceVariant,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 10,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: AppColors.border),
+              ),
+              prefixIcon: const Icon(
+                Icons.link,
+                size: 18,
+                color: AppColors.textSecondary,
+              ),
+              suffixIcon: hasCalendar
+                  ? IconButton(
+                      icon: const Icon(Icons.clear, size: 16),
+                      onPressed: () {
+                        setState(() => _calendarController.clear());
+                      },
+                    )
+                  : null,
+            ),
+            style: const TextStyle(fontSize: 12),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              TextButton.icon(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Cách lấy link Google Calendar'),
+                      content: const Text(
+                        '1. Mở Google Calendar trên máy tính\n'
+                        '2. Vào Cài đặt lịch của bạn > Quyền truy cập cho sự kiện\n'
+                        '3. Chọn "Chia sẻ công khai" hoặc tạo một "Lịch hẹn (Appointment Schedule)"\n'
+                        '4. Sao chép liên kết chia sẻ và dán vào ô bên trên.',
+                      ),
+                      actions: [
+                        FilledButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: const Text('Đã hiểu'),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.help_outline, size: 14),
+                label: const Text(
+                  'Hướng dẫn lấy link',
+                  style: TextStyle(fontSize: 11),
+                ),
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+              const Spacer(),
+              if (hasCalendar)
+                OutlinedButton.icon(
+                  onPressed: () {
+                    final uri = Uri.tryParse(_calendarController.text.trim());
+                    final isValid =
+                        uri != null &&
+                        uri.scheme == 'https' &&
+                        (uri.host == 'calendar.google.com' ||
+                            uri.host == 'calendar.app.google');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          isValid ? '✅ Đường dẫn Google Calendar hợp lệ!' : '⚠️ Đường dẫn có thể chưa đúng định dạng Google Calendar.',
+                        ),
+                        backgroundColor: isValid
+                            ? AppColors.accent
+                            : AppColors.warning,
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.verified_outlined, size: 14),
+                  label: const Text('Kiểm tra', style: TextStyle(fontSize: 11)),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }
