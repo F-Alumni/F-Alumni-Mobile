@@ -16,40 +16,11 @@ class ChatListScreen extends StatefulWidget {
 class _ChatListScreenState extends State<ChatListScreen> {
   final TextEditingController _searchController = TextEditingController();
 
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) context.read<ChatCubit>().loadChats();
-    });
-  }
-
   final List<String> _filters = [
     'Tất cả',
     'Mentor & Cố vấn',
     'Chưa đọc',
-    'Đã ẩn',
   ];
-
-  Future<bool> _toggleHiddenFromList(ChatConversation conversation) async {
-    final chatCubit = context.read<ChatCubit>();
-    final changed = await chatCubit.toggleHidden(conversation.id);
-    if (!mounted || !changed) return changed;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          conversation.isHidden
-              ? 'Đã bỏ ẩn cuộc trò chuyện.'
-              : 'Đã ẩn cuộc trò chuyện.',
-        ),
-        action: SnackBarAction(
-          label: 'Hoàn tác',
-          onPressed: () => chatCubit.toggleHidden(conversation.id),
-        ),
-      ),
-    );
-    return true;
-  }
 
   @override
   void dispose() {
@@ -75,28 +46,19 @@ class _ChatListScreenState extends State<ChatListScreen> {
               children: [
                 Text(
                   'Tin nhắn',
-                  style: AppTypography.titleMedium.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: AppTypography.titleMedium.copyWith(fontWeight: FontWeight.bold),
                 ),
                 if (unread > 0) ...[
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
                       color: AppColors.primary,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
                       '$unread tin mới',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
@@ -108,21 +70,16 @@ class _ChatListScreenState extends State<ChatListScreen> {
           IconButton(
             icon: const Icon(Icons.edit_square, color: AppColors.primary),
             tooltip: 'Soạn tin nhắn mới (CH-01)',
-            onPressed: () => context.go('/directory'),
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Chọn Mentor hoặc Sinh viên từ danh bạ để nhắn tin')),
+              );
+            },
           ),
         ],
       ),
       body: Column(
         children: [
-          if (context.watch<ChatCubit>().state is ChatError)
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Text(
-                (context.watch<ChatCubit>().state as ChatError).message,
-              ),
-            ),
-          if (context.watch<ChatCubit>().state is ChatLoading)
-            const LinearProgressIndicator(),
           // Search input
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -131,27 +88,13 @@ class _ChatListScreenState extends State<ChatListScreen> {
               onChanged: (val) => context.read<ChatCubit>().searchChats(val),
               decoration: InputDecoration(
                 hintText: 'Tìm kiếm tin nhắn, mentor, cựu sinh viên...',
-                hintStyle: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-                prefixIcon: const Icon(
-                  Icons.search,
-                  color: AppColors.textSecondary,
-                ),
+                hintStyle: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
+                prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
                 filled: true,
                 fillColor: AppColors.surface,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: AppColors.border),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: AppColors.border),
-                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.border)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.border)),
               ),
             ),
           ),
@@ -159,9 +102,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
           // Filter Chips
           BlocBuilder<ChatCubit, ChatState>(
             builder: (context, state) {
-              final activeFilter = (state is ChatLoaded)
-                  ? state.selectedFilter
-                  : 'Tất cả';
+              final activeFilter = (state is ChatLoaded) ? state.selectedFilter : 'Tất cả';
               return SizedBox(
                 height: 38,
                 child: ListView.separated(
@@ -175,26 +116,17 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     return ChoiceChip(
                       label: Text(f),
                       selected: isSelected,
-                      onSelected: (_) =>
-                          context.read<ChatCubit>().filterChats(f),
+                      onSelected: (_) => context.read<ChatCubit>().filterChats(f),
                       selectedColor: AppColors.primary,
                       backgroundColor: AppColors.surface,
                       labelStyle: TextStyle(
-                        color: isSelected
-                            ? Colors.white
-                            : AppColors.textPrimary,
+                        color: isSelected ? Colors.white : AppColors.textPrimary,
                         fontSize: 12,
-                        fontWeight: isSelected
-                            ? FontWeight.bold
-                            : FontWeight.normal,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
-                        side: BorderSide(
-                          color: isSelected
-                              ? AppColors.primary
-                              : AppColors.border,
-                        ),
+                        side: BorderSide(color: isSelected ? AppColors.primary : AppColors.border),
                       ),
                     );
                   },
@@ -208,11 +140,6 @@ class _ChatListScreenState extends State<ChatListScreen> {
           Expanded(
             child: BlocBuilder<ChatCubit, ChatState>(
               builder: (context, state) {
-                if (state is ChatError) {
-                  return Center(
-                    child: Text(state.message, textAlign: TextAlign.center),
-                  );
-                }
                 if (state is! ChatLoaded) {
                   return const Center(child: CircularProgressIndicator());
                 }
@@ -223,20 +150,14 @@ class _ChatListScreenState extends State<ChatListScreen> {
                   return Center(
                     child: Text(
                       'Không tìm thấy cuộc trò chuyện nào',
-                      style: AppTypography.bodyMedium.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
+                      style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
                     ),
                   );
                 }
 
                 return ListView.separated(
                   itemCount: convs.length,
-                  separatorBuilder: (_, __) => const Divider(
-                    height: 1,
-                    indent: 76,
-                    color: AppColors.border,
-                  ),
+                  separatorBuilder: (_, __) => const Divider(height: 1, indent: 76, color: AppColors.border),
                   itemBuilder: (context, index) {
                     final conv = convs[index];
                     return _buildConversationItem(context, conv);
@@ -251,185 +172,133 @@ class _ChatListScreenState extends State<ChatListScreen> {
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         child: const Icon(Icons.chat),
-        onPressed: () => context.go('/directory'),
+        onPressed: () {
+          // Quick navigate to first conversation
+          context.push('/chat/chat_thao');
+        },
       ),
     );
   }
 
   Widget _buildConversationItem(BuildContext context, ChatConversation conv) {
-    return Dismissible(
-      key: ValueKey('conversation-${conv.id}'),
-      direction: DismissDirection.endToStart,
-      onDismissed: (_) => _toggleHiddenFromList(conv),
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 24),
-        color: conv.isHidden ? AppColors.accent : AppColors.textSecondary,
-        child: Icon(
-          conv.isHidden ? Icons.unarchive_outlined : Icons.archive_outlined,
-          color: Colors.white,
-        ),
-      ),
-      child: InkWell(
-        onTap: () => context.push('/chat/${conv.id}'),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              // Avatar with Online dot
-              Stack(
-                children: [
-                  CircleAvatar(
-                    radius: 26,
-                    backgroundImage: conv.peerAvatar.isEmpty
-                        ? null
-                        : NetworkImage(conv.peerAvatar),
-                    child: conv.peerAvatar.isEmpty
-                        ? const Icon(Icons.person_outline)
-                        : null,
-                  ),
-                ],
-              ),
-              const SizedBox(width: 12),
-
-              // Middle info (Name, role, message preview)
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            conv.peerName,
-                            style: AppTypography.titleSmall.copyWith(
-                              fontWeight: conv.unreadCount > 0
-                                  ? FontWeight.bold
-                                  : FontWeight.w600,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (conv.isMentor) ...[
-                          const SizedBox(width: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 1,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              'Mentor',
-                              style: AppTypography.labelSmall.copyWith(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 10,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      conv.lastMessage,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.bodySmall.copyWith(
-                        color: conv.unreadCount > 0
-                            ? AppColors.textPrimary
-                            : AppColors.textSecondary,
-                        fontWeight: conv.unreadCount > 0
-                            ? FontWeight.bold
-                            : FontWeight.normal,
+    return InkWell(
+      onTap: () => context.push('/chat/${conv.id}'),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            // Avatar with Online dot
+            Stack(
+              children: [
+                CircleAvatar(
+                  radius: 26,
+                  backgroundImage: NetworkImage(conv.peerAvatar),
+                ),
+                if (conv.isOnline)
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      width: 14,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        color: AppColors.accent,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
                       ),
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-
-              // Right side (Time, Pinned icon, Unread badge)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    conv.lastMessageTime,
-                    style: AppTypography.labelSmall.copyWith(
-                      color: conv.unreadCount > 0
-                          ? AppColors.primary
-                          : AppColors.textSecondary,
-                      fontWeight: conv.unreadCount > 0
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                    ),
                   ),
-                  const SizedBox(height: 4),
+              ],
+            ),
+            const SizedBox(width: 12),
+
+            // Middle info (Name, role, message preview)
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Row(
-                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (conv.isPinned)
-                        const Icon(
-                          Icons.push_pin,
-                          size: 14,
-                          color: AppColors.textSecondary,
+                      Flexible(
+                        child: Text(
+                          conv.peerName,
+                          style: AppTypography.titleSmall.copyWith(
+                            fontWeight: conv.unreadCount > 0 ? FontWeight.bold : FontWeight.w600,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      if (conv.unreadCount > 0) ...[
+                      ),
+                      if (conv.isMentor) ...[
                         const SizedBox(width: 4),
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 7,
-                            vertical: 2,
-                          ),
-                          decoration: const BoxDecoration(
-                            color: AppColors.primary,
-                            shape: BoxShape.circle,
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            '${conv.unreadCount}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
+                            'Mentor',
+                            style: AppTypography.labelSmall.copyWith(
+                              color: AppColors.primary,
                               fontWeight: FontWeight.bold,
+                              fontSize: 10,
                             ),
                           ),
                         ),
                       ],
                     ],
                   ),
-                ],
-              ),
-              PopupMenuButton<String>(
-                tooltip: 'Tùy chọn cuộc trò chuyện',
-                onSelected: (value) async {
-                  if (value == 'hide') {
-                    await _toggleHiddenFromList(conv);
-                  } else if (value == 'mute') {
-                    await context.read<ChatCubit>().toggleMute(conv.id);
-                  }
-                },
-                itemBuilder: (_) => [
-                  PopupMenuItem(
-                    value: 'hide',
-                    child: Text(
-                      conv.isHidden
-                          ? 'Bỏ ẩn cuộc trò chuyện'
-                          : 'Ẩn cuộc trò chuyện',
-                    ),
-                  ),
-                  PopupMenuItem(
-                    value: 'mute',
-                    child: Text(
-                      conv.isMuted ? 'Bật thông báo' : 'Tắt thông báo',
+                  const SizedBox(height: 3),
+                  Text(
+                    conv.lastMessage,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.bodySmall.copyWith(
+                      color: conv.unreadCount > 0 ? AppColors.textPrimary : AppColors.textSecondary,
+                      fontWeight: conv.unreadCount > 0 ? FontWeight.bold : FontWeight.normal,
                     ),
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+            const SizedBox(width: 8),
+
+            // Right side (Time, Pinned icon, Unread badge)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  conv.lastMessageTime,
+                  style: AppTypography.labelSmall.copyWith(
+                    color: conv.unreadCount > 0 ? AppColors.primary : AppColors.textSecondary,
+                    fontWeight: conv.unreadCount > 0 ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (conv.isPinned)
+                      const Icon(Icons.push_pin, size: 14, color: AppColors.textSecondary),
+                    if (conv.unreadCount > 0) ...[
+                      const SizedBox(width: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                        decoration: const BoxDecoration(
+                          color: AppColors.primary,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          '${conv.unreadCount}',
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

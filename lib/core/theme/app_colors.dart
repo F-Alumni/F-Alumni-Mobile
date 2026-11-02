@@ -6,15 +6,9 @@ class AppColors {
   static const Color fptBlue = Color(0xFF0066B2);
   static const Color fptGreen = Color(0xFF0DB04B);
 
-  // Semantic aliases used by feature screens.
-  static const Color primary = fptBlue;
-  static const Color secondary = fptOrange;
-  static const Color accent = fptGreen;
-
   // Background & Surfaces
   static const Color background = Color(0xFFF8FAFC);
   static const Color surface = Colors.white;
-  static const Color surfaceVariant = Color(0xFFF1F5F9);
   static const Color border = Color(0xFFE2E8F0);
 
   // Text Colors

@@ -5,13 +5,14 @@ import 'package:alumni_connect/core/theme/app_colors.dart';
 import 'package:alumni_connect/core/theme/app_typography.dart';
 import 'package:alumni_connect/features/chat/data/models/chat_model.dart';
 import 'package:alumni_connect/features/chat/presentation/cubit/chat_cubit.dart';
-import 'package:alumni_connect/features/auth/presentation/cubit/auth_cubit.dart';
-import 'package:alumni_connect/features/profile/presentation/cubit/profile_cubit.dart';
 
 class DirectMessagesScreen extends StatefulWidget {
   final String conversationId;
 
-  const DirectMessagesScreen({super.key, required this.conversationId});
+  const DirectMessagesScreen({
+    super.key,
+    required this.conversationId,
+  });
 
   @override
   State<DirectMessagesScreen> createState() => _DirectMessagesScreenState();
@@ -20,24 +21,16 @@ class DirectMessagesScreen extends StatefulWidget {
 class _DirectMessagesScreenState extends State<DirectMessagesScreen> {
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  late final ChatCubit _chatCubit;
+  bool _isTyping = false;
 
   @override
   void initState() {
     super.initState();
-    _chatCubit = context.read<ChatCubit>();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) return;
-      await _chatCubit.loadChats();
-      await _chatCubit.loadMessages(widget.conversationId);
-      await _chatCubit.markAsRead(widget.conversationId);
-      await _chatCubit.connectToConversation(widget.conversationId);
-    });
+    context.read<ChatCubit>().markAsRead(widget.conversationId);
   }
 
   @override
   void dispose() {
-    _chatCubit.disconnectFromConversation();
     _textController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -47,8 +40,7 @@ class _DirectMessagesScreenState extends State<DirectMessagesScreen> {
     final text = _textController.text.trim();
     if (text.isEmpty) return;
 
-    _chatCubit.sendMessage(widget.conversationId, text);
-    _chatCubit.sendTyping(false);
+    context.read<ChatCubit>().sendMessage(widget.conversationId, text);
     _textController.clear();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -62,133 +54,18 @@ class _DirectMessagesScreenState extends State<DirectMessagesScreen> {
     });
   }
 
-  Future<void> _sendImageByUrl() async {
-    final controller = TextEditingController();
-    final url = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Gửi ảnh bằng đường dẫn'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          keyboardType: TextInputType.url,
-          decoration: const InputDecoration(
-            hintText: 'https://example.com/image.jpg',
-          ),
-          onSubmitted: (value) => Navigator.pop(dialogContext, value),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Hủy'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, controller.text),
-            child: const Text('Gửi ảnh'),
-          ),
-        ],
-      ),
-    );
-    controller.dispose();
-    if (url == null || !mounted) return;
-    final uri = Uri.tryParse(url.trim());
-    if (uri == null || !uri.hasScheme || !uri.hasAuthority) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đường dẫn ảnh không hợp lệ.')),
-      );
-      return;
-    }
-    await _chatCubit.sendMessage(
-      widget.conversationId,
-      '',
-      imageUrl: uri.toString(),
-    );
-  }
-
-  Future<void> _searchMessages() async {
-    final controller = TextEditingController();
-    final query = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Tìm tin nhắn'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(hintText: 'Nhập từ khóa'),
-          onSubmitted: (value) => Navigator.pop(dialogContext, value),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Hủy'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, controller.text),
-            child: const Text('Tìm'),
-          ),
-        ],
-      ),
-    );
-    controller.dispose();
-    if (query == null || query.trim().isEmpty || !mounted) return;
-    await _chatCubit.loadMessages(widget.conversationId, search: query);
-  }
-
-  Future<void> _blockPeer(String userId) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Chặn người dùng?'),
-        content: const Text('Bạn sẽ hạn chế tương tác với tài khoản này.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Hủy'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Chặn'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-    final error = await context.read<ProfileCubit>().blockUser(userId);
-    if (!mounted) return;
-    if (error != null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(error)));
-      return;
-    }
-    context.pop();
-  }
-
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<ChatCubit, ChatState>(
       builder: (context, state) {
         if (state is! ChatLoaded) {
-          return Scaffold(
-            body: Center(
-              child: state is ChatError
-                  ? Text(state.message)
-                  : const CircularProgressIndicator(),
-            ),
-          );
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
 
-        final matches = state.conversations.where(
+        final conv = state.conversations.firstWhere(
           (c) => c.id == widget.conversationId,
+          orElse: () => state.conversations.first,
         );
-        if (matches.isEmpty)
-          return const Scaffold(
-            body: Center(child: Text('Không tìm thấy cuộc trò chuyện.')),
-          );
-        final conv = matches.first;
-        final authState = context.read<AuthCubit>().state;
-        final currentUserId = authState is AuthAuthenticated
-            ? authState.user.id
-            : '';
 
         return Scaffold(
           backgroundColor: AppColors.background,
@@ -206,12 +83,7 @@ class _DirectMessagesScreenState extends State<DirectMessagesScreen> {
                   children: [
                     CircleAvatar(
                       radius: 20,
-                      backgroundImage: conv.peerAvatar.isEmpty
-                          ? null
-                          : NetworkImage(conv.peerAvatar),
-                      child: conv.peerAvatar.isEmpty
-                          ? const Icon(Icons.person_outline)
-                          : null,
+                      backgroundImage: NetworkImage(conv.peerAvatar),
                     ),
                     if (conv.isOnline)
                       Positioned(
@@ -239,19 +111,14 @@ class _DirectMessagesScreenState extends State<DirectMessagesScreen> {
                           Flexible(
                             child: Text(
                               conv.peerName,
-                              style: AppTypography.titleSmall.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                              style: AppTypography.titleSmall.copyWith(fontWeight: FontWeight.bold),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           if (conv.isMentor) ...[
                             const SizedBox(width: 4),
                             Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 1,
-                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                               decoration: BoxDecoration(
                                 color: AppColors.primary.withOpacity(0.12),
                                 borderRadius: BorderRadius.circular(8),
@@ -269,11 +136,9 @@ class _DirectMessagesScreenState extends State<DirectMessagesScreen> {
                         ],
                       ),
                       Text(
-                        conv.peerRole.isEmpty
-                            ? 'Cuộc trò chuyện'
-                            : conv.peerRole,
+                        conv.isOnline ? 'Đang hoạt động' : 'Offline',
                         style: AppTypography.labelSmall.copyWith(
-                          color: AppColors.textSecondary,
+                          color: conv.isOnline ? AppColors.accent : AppColors.textSecondary,
                         ),
                       ),
                     ],
@@ -282,48 +147,26 @@ class _DirectMessagesScreenState extends State<DirectMessagesScreen> {
               ],
             ),
             actions: [
+              IconButton(
+                icon: const Icon(Icons.videocam_outlined, color: AppColors.secondary),
+                tooltip: 'Google Meet',
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Khởi tạo phòng họp Google Meet 1-1...')),
+                  );
+                },
+              ),
               PopupMenuButton<String>(
-                icon: const Icon(
-                  Icons.more_vert,
-                  color: AppColors.textSecondary,
-                ),
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    value: 'hide',
-                    child: Text(
-                      conv.isHidden
-                          ? 'Bỏ ẩn cuộc trò chuyện'
-                          : 'Ẩn cuộc trò chuyện',
-                    ),
-                  ),
-                  PopupMenuItem(
-                    value: 'mute',
-                    child: Text(
-                      conv.isMuted ? 'Bật lại thông báo' : 'Tắt thông báo',
-                    ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'search',
-                    child: Text('Tìm tin nhắn'),
-                  ),
-                  if ((conv.peerUserId ?? '').isNotEmpty)
-                    const PopupMenuItem(
-                      value: 'block',
-                      child: Text('Chặn người dùng'),
-                    ),
+                icon: const Icon(Icons.more_vert, color: AppColors.textSecondary),
+                itemBuilder: (context) => const [
+                  PopupMenuItem(value: 'mute', child: Text('Tắt thông báo (CH-09)')),
+                  PopupMenuItem(value: 'search', child: Text('Tìm tin nhắn (CH-08)')),
+                  PopupMenuItem(value: 'block', child: Text('Chặn người dùng (US-10)')),
                 ],
-                onSelected: (val) async {
-                  if (val == 'hide') {
-                    final changed = await context
-                        .read<ChatCubit>()
-                        .toggleHidden(conv.id);
-                    if (changed && context.mounted) context.pop();
-                  }
-                  if (val == 'mute')
-                    context.read<ChatCubit>().toggleMute(conv.id);
-                  if (val == 'search') _searchMessages();
-                  if (val == 'block' && conv.peerUserId != null)
-                    _blockPeer(conv.peerUserId!);
+                onSelected: (val) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Đã thực hiện: $val')),
+                  );
                 },
               ),
             ],
@@ -338,30 +181,27 @@ class _DirectMessagesScreenState extends State<DirectMessagesScreen> {
                   itemCount: conv.messages.length,
                   itemBuilder: (context, index) {
                     final msg = conv.messages[index];
-                    final isMe = msg.senderId == currentUserId;
+                    final isMe = msg.senderId == 'user_an';
                     return _buildMessageBubble(msg, isMe);
                   },
                 ),
               ),
 
-              // Realtime typing indicator (CH-06)
-              if (state.isPeerTyping)
+              // Typing indicator simulation (CH-06)
+              if (_isTyping)
                 Padding(
                   padding: const EdgeInsets.only(left: 20, bottom: 8),
                   child: Row(
                     children: [
                       Text(
                         '${conv.peerName} đang soạn tin nhắn...',
-                        style: AppTypography.labelSmall.copyWith(
-                          color: AppColors.textSecondary,
-                          fontStyle: FontStyle.italic,
-                        ),
+                        style: AppTypography.labelSmall.copyWith(color: AppColors.textSecondary, fontStyle: FontStyle.italic),
                       ),
                     ],
                   ),
                 ),
 
-              // Message input and image URL attachment (CH-07)
+              // Bottom Input Bar with attachment buttons (CH-07)
               _buildInputBar(),
             ],
           ),
@@ -375,9 +215,7 @@ class _DirectMessagesScreenState extends State<DirectMessagesScreen> {
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.78,
-        ),
+        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: isMe ? AppColors.primary : AppColors.surface,
@@ -397,31 +235,15 @@ class _DirectMessagesScreenState extends State<DirectMessagesScreen> {
           ],
         ),
         child: Column(
-          crossAxisAlignment: isMe
-              ? CrossAxisAlignment.end
-              : CrossAxisAlignment.start,
+          crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
-            if (msg.imageUrl != null) ...[
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: Image.network(
-                  msg.imageUrl!,
-                  width: 220,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) =>
-                      const Text('Không tải được ảnh'),
-                ),
+            Text(
+              msg.content,
+              style: AppTypography.bodyMedium.copyWith(
+                color: isMe ? Colors.white : AppColors.textPrimary,
+                height: 1.4,
               ),
-              if (msg.content.isNotEmpty) const SizedBox(height: 6),
-            ],
-            if (msg.content.isNotEmpty)
-              Text(
-                msg.content,
-                style: AppTypography.bodyMedium.copyWith(
-                  color: isMe ? Colors.white : AppColors.textPrimary,
-                  height: 1.4,
-                ),
-              ),
+            ),
 
             // Google Meet Attached Card (Mentoring booking)
             if (msg.meetLink != null) ...[
@@ -429,18 +251,12 @@ class _DirectMessagesScreenState extends State<DirectMessagesScreen> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: isMe
-                      ? Colors.white.withOpacity(0.15)
-                      : AppColors.secondary.withOpacity(0.08),
+                  color: isMe ? Colors.white.withOpacity(0.15) : AppColors.secondary.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.video_call,
-                      color: isMe ? Colors.white : AppColors.secondary,
-                      size: 22,
-                    ),
+                    Icon(Icons.video_call, color: isMe ? Colors.white : AppColors.secondary, size: 22),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -499,25 +315,32 @@ class _DirectMessagesScreenState extends State<DirectMessagesScreen> {
       child: Row(
         children: [
           IconButton(
-            tooltip: 'Gửi ảnh bằng URL',
-            onPressed: _sendImageByUrl,
-            icon: const Icon(Icons.image_outlined, color: AppColors.primary),
+            icon: const Icon(Icons.image_outlined, color: AppColors.textSecondary),
+            tooltip: 'Gửi ảnh (CH-07)',
+            onPressed: () {
+              context.read<ChatCubit>().sendMessage(
+                    widget.conversationId,
+                    'Đã gửi 1 hình ảnh đính kèm (CV preview)',
+                    imageUrl: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=600',
+                  );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.calendar_month_outlined, color: AppColors.textSecondary),
+            tooltip: 'Gửi lịch hẹn',
+            onPressed: () {
+              _textController.text = 'Em xin gửi link Google Meet lịch hẹn trao đổi: https://meet.google.com/fpt-123';
+            },
           ),
           Expanded(
             child: TextField(
               controller: _textController,
-              onChanged: (value) => _chatCubit.sendTyping(value.isNotEmpty),
               decoration: InputDecoration(
                 hintText: 'Nhập tin nhắn...',
-                hintStyle: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textSecondary,
-                ),
+                hintStyle: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
                 filled: true,
                 fillColor: AppColors.background,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
                   borderSide: const BorderSide(color: AppColors.border),

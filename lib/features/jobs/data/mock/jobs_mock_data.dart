@@ -1,0 +1,95 @@
+import 'package:alumni_connect/features/jobs/data/models/job_model.dart';
+
+class JobsMockData {
+  static final List<JobModel> mockJobs = [
+    JobModel(
+      id: 'job_1',
+      title: 'Frontend Engineer (React / Next.js / TypeScript)',
+      companyName: 'FPT Software Global',
+      companyLogo: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=120',
+      location: 'F-Complex Đà Nẵng / Onsite Tokyo',
+      salary: '15,000,000 - 22,000,000 VNĐ',
+      jobType: 'Full-time / OJT',
+      experienceLevel: 'Fresher / Junior',
+      hasReferral: true,
+      referralAlumniName: 'Lê Thuỳ Dung',
+      referralAlumniRole: 'Alumni K15 • HR Talent Partner @ FPT Software',
+      referralAlumniAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+      postedTime: '4 giờ trước',
+      description:
+          'FPT Software Global đang mở đợt tuyển dụng gấp 15 vị trí Fresher/Junior Frontend tham gia phát triển hệ thống Banking & Fintech cho khách hàng Nhật Bản và Bắc Mỹ. Môi trường agile quốc tế, có cơ hội onsite dài hạn.',
+      requirements: [
+        'Nắm vững Javascript/TypeScript, ReactJS, Next.js và Tailwind CSS',
+        'Có tư duy tốt về Component Architecture, Clean Code và Responsive Web',
+        'Ưu tiên sinh viên FPT có đồ án Capstone điểm cao hoặc kinh nghiệm làm project thực tế',
+        'Tiếng Anh giao tiếp hoặc Tiếng Nhật N3 là lợi thế lớn',
+      ],
+      benefits: [
+        'Cấp MacBook Pro M3 ngay ngày đầu nhận việc',
+        'Thưởng dự án và phụ cấp thi chứng chỉ quốc tế (AWS, JLPT...) 100%',
+        'Bảo hiểm FPT Care cao cấp cho nhân viên và người thân',
+        'Được Cựu SV K15 trực tiếp Mentor và bảo chứng CV qua vòng HR Screening',
+      ],
+      tags: ['#React', '#TypeScript', '#NextJS', '#FPTSoftware', '#HotReferral'],
+      isSaved: true,
+    ),
+    JobModel(
+      id: 'job_2',
+      title: 'Backend Developer (Golang / Microservices)',
+      companyName: 'TechCorp Innovation',
+      companyLogo: 'https://images.unsplash.com/photo-1542744094-24638eff58bb?w=120',
+      location: 'Hola Park Hòa Lạc, Hà Nội',
+      salary: '18,000,000 - 25,000,000 VNĐ',
+      jobType: 'Full-time',
+      experienceLevel: 'Junior',
+      hasReferral: true,
+      referralAlumniName: 'Trần Hoàng Long',
+      referralAlumniRole: 'Alumni K14 • Tech Lead @ TechCorp',
+      referralAlumniAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+      postedTime: '1 ngày trước',
+      description:
+          'Xây dựng hệ thống High-throughput Payment Gateway phục vụ hàng triệu giao dịch mỗi ngày. Làm việc cùng các kỹ sư kỳ cựu xuất thân từ FPT University.',
+      requirements: [
+        'Nắm vững cấu trúc dữ liệu, thuật toán và lập trình hướng đối tượng OOP',
+        'Có kinh nghiệm với Golang, Java hoặc Node.js',
+        'Hiểu biết về Database Indexing (PostgreSQL), Redis Caching và Message Queue (Kafka)',
+      ],
+      benefits: [
+        'Lương thưởng tháng 13 + thưởng hiệu quả kinh doanh lên tới 3 tháng lương',
+        'Review lương 2 lần/năm, lộ trình thăng tiến rõ ràng',
+        'Xe đưa đón cán bộ nhân viên FPT Hòa Lạc hàng ngày',
+      ],
+      tags: ['#Golang', '#Microservices', '#Backend', '#TechCorp'],
+      isSaved: false,
+    ),
+    JobModel(
+      id: 'job_3',
+      title: 'Thực tập sinh Mobile Developer (Flutter / Dart) Kỳ Fall 2026',
+      companyName: 'VTI Group',
+      companyLogo: 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=120',
+      location: 'FPT Campus Đà Nẵng / Hybrid',
+      salary: 'Trợ cấp 6,000,000 - 9,000,000 VNĐ / tháng',
+      jobType: 'Thực tập OJT',
+      experienceLevel: 'Intern / OJT',
+      hasReferral: true,
+      referralAlumniName: 'Nguyễn Hải Đăng',
+      referralAlumniRole: 'Alumni K15 • Mobile Lead @ VTI',
+      referralAlumniAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
+      postedTime: '2 ngày trước',
+      description:
+          'Chương trình OJT độc quyền dành riêng cho Cóc FPT K16, K17. Được tham gia trực tiếp vào dự án Super App, được hướng dẫn 1-1 từ Senior Mobile Engineer.',
+      requirements: [
+        'Sinh viên năm 3, năm 4 chuẩn bị đi OJT hoặc làm đồ án tốt nghiệp',
+        'Biết cơ bản về Flutter, Dart, BLoC hoặc Provider',
+        'Chăm chỉ, ham học hỏi và có trách nhiệm với deadline',
+      ],
+      benefits: [
+        'Nhận 100% trợ cấp thực tập hàng tháng',
+        'Hỗ trợ dấu mộc báo cáo OJT FPT University',
+        'Cơ hội ký hợp đồng chính thức Fresher ngay sau khi kết thúc kỳ OJT',
+      ],
+      tags: ['#Flutter', '#Dart', '#OJT2026', '#VTIGroup'],
+      isSaved: false,
+    ),
+  ];
+}

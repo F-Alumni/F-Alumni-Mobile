@@ -1,6 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:alumni_connect/features/profile/data/models/user_profile_model.dart';
-import 'package:alumni_connect/features/profile/data/profile_repository.dart';
+import 'package:alumni_connect/features/profile/data/mock/profile_mock_data.dart';
 
 abstract class ProfileState {}
 
@@ -8,69 +8,36 @@ class ProfileInitial extends ProfileState {}
 
 class ProfileLoading extends ProfileState {}
 
-class ProfileError extends ProfileState {
-  ProfileError(this.message);
-  final String message;
-}
-
 class ProfileLoaded extends ProfileState {
-  ProfileLoaded({required this.profile});
   final UserProfile profile;
-  ProfileLoaded copyWith({UserProfile? profile}) =>
-      ProfileLoaded(profile: profile ?? this.profile);
+
+  ProfileLoaded({required this.profile});
+
+  ProfileLoaded copyWith({UserProfile? profile}) {
+    return ProfileLoaded(profile: profile ?? this.profile);
+  }
 }
 
 class ProfileCubit extends Cubit<ProfileState> {
-  ProfileCubit(this._repository) : super(ProfileInitial());
-  final ProfileRepository _repository;
+  ProfileCubit() : super(ProfileInitial());
 
-  Future<String?> blockUser(String userId) async {
-    try {
-      await _repository.blockUser(userId, reason: 'Blocked from mobile app');
-      return null;
-    } catch (error) {
-      return error.toString();
-    }
-  }
-
-  Future<List<Map<String, dynamic>>> loadBlockedUsers() async {
-    final rows = await _repository.loadBlockedUsers();
-    return rows;
-  }
-
-  Future<String?> unblockUser(String userId) async {
-    try {
-      await _repository.unblockUser(userId);
-      return null;
-    } catch (error) {
-      return error.toString();
-    }
-  }
-
-  Future<void> loadProfile() async {
+  void loadProfile() {
     emit(ProfileLoading());
-    try {
-      emit(ProfileLoaded(profile: await _repository.loadMe()));
-    } catch (error) {
-      emit(ProfileError(error.toString()));
-    }
+    emit(ProfileLoaded(profile: ProfileMockData.currentUser));
   }
 
-  Future<bool> updateProfile({
+  void updateProfile({
     String? name,
     String? bio,
     String? campus,
     String? major,
     String? cohort,
     String? calendarUrl,
-    String? avatarUrl,
     List<String>? skills,
-  }) async {
-    final currentState = state;
-    if (currentState is! ProfileLoaded) return false;
-    final current = currentState.profile;
-    emit(ProfileLoading());
-    try {
+    bool? isAlumni,
+  }) {
+    if (state is ProfileLoaded) {
+      final current = (state as ProfileLoaded).profile;
       final updated = current.copyWith(
         name: name,
         bio: bio,
@@ -78,39 +45,26 @@ class ProfileCubit extends Cubit<ProfileState> {
         major: major,
         cohort: cohort,
         calendarUrl: calendarUrl,
-        avatarUrl: avatarUrl,
         skills: skills,
+        isAlumni: isAlumni,
       );
-      emit(ProfileLoaded(profile: await _repository.update(updated)));
-      return true;
-    } catch (error) {
-      emit(ProfileError(error.toString()));
-      return false;
+      emit(ProfileLoaded(profile: updated));
     }
   }
 
-  Future<bool> updatePrivacySettings({
+  void updatePrivacySettings({
     bool? isPublicToRecruiters,
-    bool? showEmailPublicly,
-    bool? showPhonePublicly,
-    bool? showCalendarPublicly,
-  }) async {
-    final currentState = state;
-    if (currentState is! ProfileLoaded) return false;
-    final current = currentState.profile;
-    emit(ProfileLoading());
-    try {
+    bool? showContactInfo,
+    bool? allowMessagesFromStrangers,
+  }) {
+    if (state is ProfileLoaded) {
+      final current = (state as ProfileLoaded).profile;
       final updated = current.copyWith(
         isPublicToRecruiters: isPublicToRecruiters,
-        showEmailPublicly: showEmailPublicly,
-        showPhonePublicly: showPhonePublicly,
-        showCalendarPublicly: showCalendarPublicly,
+        showContactInfo: showContactInfo,
+        allowMessagesFromStrangers: allowMessagesFromStrangers,
       );
-      emit(ProfileLoaded(profile: await _repository.updatePrivacy(updated)));
-      return true;
-    } catch (error) {
-      emit(ProfileError(error.toString()));
-      return false;
+      emit(ProfileLoaded(profile: updated));
     }
   }
 }

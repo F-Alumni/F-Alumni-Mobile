@@ -1,0 +1,82 @@
+import 'package:alumni_connect/features/directory/data/models/alumni_model.dart';
+
+class DirectoryMockData {
+  static const List<AlumniModel> alumniList = [
+    AlumniModel(
+      id: 'alumni_1',
+      name: 'Trần Hoàng Long',
+      mssv: 'SE140123',
+      cohort: 'K14',
+      major: 'Kỹ thuật Phần mềm (SE)',
+      campus: 'Campus FPT Hòa Lạc',
+      currentRole: 'Tech Lead',
+      company: 'TechCorp Vietnam',
+      avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+      isVerified: true,
+      isAvailableForMentoring: true,
+      rating: 4.9,
+      reviewsCount: 42,
+      completedSessions: 28,
+      skills: ['Java', 'System Design', 'Cloud AWS', 'Phỏng vấn Backend'],
+      bio:
+          '7+ năm kinh nghiệm phát triển phần mềm, từng làm việc tại FPT Software, Grab và hiện tại là Tech Lead tại TechCorp. Sẵn sàng hỗ trợ sinh viên FPT định hướng kiến trúc phần mềm, phỏng vấn backend và chuẩn bị OJT.',
+    ),
+    AlumniModel(
+      id: 'alumni_2',
+      name: 'Phạm Ngọc Trâm',
+      mssv: 'GD130456',
+      cohort: 'K13',
+      major: 'Thiết kế Đồ họa (GD)',
+      campus: 'Campus FPT TP.HCM',
+      currentRole: 'Senior Product Designer',
+      company: 'Grab Vietnam',
+      avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
+      isVerified: true,
+      isAvailableForMentoring: true,
+      rating: 5.0,
+      reviewsCount: 30,
+      completedSessions: 19,
+      skills: ['UI/UX', 'Design System', 'Figma', 'Portfolio Review'],
+      bio:
+          'Cựu thủ khoa chuyên ngành Thiết kế Đồ họa K13. Đã có 5+ năm thiết kế sản phẩm số tại Grab. Nhận review portfolio và tư vấn định hướng UI/UX Designer cho sinh viên FPT.',
+    ),
+    AlumniModel(
+      id: 'alumni_3',
+      name: 'Vũ Đức Thành',
+      mssv: 'IA120789',
+      cohort: 'K12',
+      major: 'An toàn Thông tin (IA)',
+      campus: 'Campus FPT Đà Nẵng',
+      currentRole: 'Solutions Architect',
+      company: 'AWS Vietnam',
+      avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',
+      isVerified: true,
+      isAvailableForMentoring: true,
+      rating: 4.8,
+      reviewsCount: 25,
+      completedSessions: 15,
+      skills: ['Cloud Security', 'DevOps', 'Kubernetes', 'CI/CD'],
+      bio:
+          'Đạt 5 chứng chỉ AWS Professional & Specialty. Sẵn sàng cố vấn lộ trình kiến trúc Cloud, Security và hỗ trợ học bổng thi chứng chỉ quốc tế cho sinh viên.',
+    ),
+    AlumniModel(
+      id: 'alumni_4',
+      name: 'Lê Thuỳ Dung',
+      mssv: 'BA150321',
+      cohort: 'K15',
+      major: 'Quản trị Kinh doanh (BA)',
+      campus: 'Campus FPT Hà Nội',
+      currentRole: 'HR Talent Partner',
+      company: 'FPT Software Global',
+      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+      isVerified: true,
+      isAvailableForMentoring: false, // tập trung Referral
+      rating: 4.9,
+      reviewsCount: 35,
+      completedSessions: 14,
+      skills: ['Referral FPT Software', 'Review CV', 'Phỏng vấn HR', 'Kỹ năng mềm'],
+      bio:
+          'Đang quản lý tuyển dụng mảng Delivery cho thị trường Nhật & Mỹ tại FPT Software. Sẵn sàng hỗ trợ referral trực tiếp cho sinh viên tốt nghiệp loại Khá/Giỏi hoặc có Capstone tốt.',
+    ),
+  ];
+}

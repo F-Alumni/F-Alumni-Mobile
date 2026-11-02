@@ -46,37 +46,33 @@ class AlumniModel {
       currentRole: json['currentRole'] as String? ?? '',
       company: json['company'] as String? ?? '',
       avatarUrl: json['avatarUrl'] as String? ?? '',
-      isVerified: json['isVerified'] as bool? ?? false,
-      isAvailableForMentoring:
-          json['isAvailableForMentoring'] as bool? ?? false,
-      rating: (json['rating'] as num?)?.toDouble() ?? 0,
+      isVerified: json['isVerified'] as bool? ?? true,
+      isAvailableForMentoring: json['isAvailableForMentoring'] as bool? ?? true,
+      rating: (json['rating'] as num?)?.toDouble() ?? 5.0,
       reviewsCount: json['reviewsCount'] as int? ?? 0,
       completedSessions: json['completedSessions'] as int? ?? 0,
-      skills:
-          (json['skills'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          const [],
+      skills: (json['skills'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
       bio: json['bio'] as String? ?? '',
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'name': name,
-    'mssv': mssv,
-    'cohort': cohort,
-    'major': major,
-    'campus': campus,
-    'currentRole': currentRole,
-    'company': company,
-    'avatarUrl': avatarUrl,
-    'isVerified': isVerified,
-    'isAvailableForMentoring': isAvailableForMentoring,
-    'rating': rating,
-    'reviewsCount': reviewsCount,
-    'completedSessions': completedSessions,
-    'skills': skills,
-    'bio': bio,
-  };
+        'id': id,
+        'name': name,
+        'mssv': mssv,
+        'cohort': cohort,
+        'major': major,
+        'campus': campus,
+        'currentRole': currentRole,
+        'company': company,
+        'avatarUrl': avatarUrl,
+        'isVerified': isVerified,
+        'isAvailableForMentoring': isAvailableForMentoring,
+        'rating': rating,
+        'reviewsCount': reviewsCount,
+        'completedSessions': completedSessions,
+        'skills': skills,
+        'bio': bio,
+      };
 }
+

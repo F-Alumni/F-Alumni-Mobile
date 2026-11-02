@@ -15,18 +15,6 @@ class DirectMessage {
     this.isSeen = true,
     this.imageUrl,
     this.meetLink,
-  });
-
-  DirectMessage copyWith({bool? isSeen}) => DirectMessage(
-    id: id,
-    senderId: senderId,
-    content: content,
-    timestamp: timestamp,
-    isSeen: isSeen ?? this.isSeen,
-    imageUrl: imageUrl,
-    meetLink: meetLink,
-  );
-
   factory DirectMessage.fromJson(Map<String, dynamic> json) {
     return DirectMessage(
       id: json['id'] as String? ?? '',
@@ -42,19 +30,19 @@ class DirectMessage {
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'senderId': senderId,
-    'content': content,
-    'timestamp': timestamp.toIso8601String(),
-    'isSeen': isSeen,
-    'imageUrl': imageUrl,
-    'meetLink': meetLink,
-  };
+        'id': id,
+        'senderId': senderId,
+        'content': content,
+        'timestamp': timestamp.toIso8601String(),
+        'isSeen': isSeen,
+        'imageUrl': imageUrl,
+        'meetLink': meetLink,
+      };
 }
+
 
 class ChatConversation {
   final String id;
-  final String? peerUserId;
   final String peerName;
   final String peerRole;
   final String peerAvatar;
@@ -62,17 +50,14 @@ class ChatConversation {
   final bool isMentor;
   final bool isPinned;
   final bool isMuted; // CH-09 (Mute notifications)
-  final bool isHidden; // CH-09 (Hide conversation)
   final int unreadCount; // CH-10 & Unread badge
   final String lastMessage;
-  final String? lastMessageSenderId;
   final String lastMessageTime;
   final bool lastMessageIsSeen;
   final List<DirectMessage> messages;
 
   const ChatConversation({
     required this.id,
-    this.peerUserId,
     required this.peerName,
     required this.peerRole,
     required this.peerAvatar,
@@ -80,10 +65,8 @@ class ChatConversation {
     this.isMentor = false,
     this.isPinned = false,
     this.isMuted = false,
-    this.isHidden = false,
     this.unreadCount = 0,
     required this.lastMessage,
-    this.lastMessageSenderId,
     required this.lastMessageTime,
     this.lastMessageIsSeen = true,
     this.messages = const [],
@@ -92,7 +75,6 @@ class ChatConversation {
   factory ChatConversation.fromJson(Map<String, dynamic> json) {
     return ChatConversation(
       id: json['id'] as String? ?? '',
-      peerUserId: json['peerUserId'] as String?,
       peerName: json['peerName'] as String? ?? '',
       peerRole: json['peerRole'] as String? ?? '',
       peerAvatar: json['peerAvatar'] as String? ?? '',
@@ -100,14 +82,11 @@ class ChatConversation {
       isMentor: json['isMentor'] as bool? ?? false,
       isPinned: json['isPinned'] as bool? ?? false,
       isMuted: json['isMuted'] as bool? ?? false,
-      isHidden: json['isHidden'] as bool? ?? false,
       unreadCount: json['unreadCount'] as int? ?? 0,
       lastMessage: json['lastMessage'] as String? ?? '',
-      lastMessageSenderId: json['lastMessageSenderId'] as String?,
       lastMessageTime: json['lastMessageTime'] as String? ?? '',
       lastMessageIsSeen: json['lastMessageIsSeen'] as bool? ?? true,
-      messages:
-          (json['messages'] as List<dynamic>?)
+      messages: (json['messages'] as List<dynamic>?)
               ?.map((e) => DirectMessage.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
@@ -115,27 +94,23 @@ class ChatConversation {
   }
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'peerUserId': peerUserId,
-    'peerName': peerName,
-    'peerRole': peerRole,
-    'peerAvatar': peerAvatar,
-    'isOnline': isOnline,
-    'isMentor': isMentor,
-    'isPinned': isPinned,
-    'isMuted': isMuted,
-    'isHidden': isHidden,
-    'unreadCount': unreadCount,
-    'lastMessage': lastMessage,
-    'lastMessageSenderId': lastMessageSenderId,
-    'lastMessageTime': lastMessageTime,
-    'lastMessageIsSeen': lastMessageIsSeen,
-    'messages': messages.map((e) => e.toJson()).toList(),
-  };
+        'id': id,
+        'peerName': peerName,
+        'peerRole': peerRole,
+        'peerAvatar': peerAvatar,
+        'isOnline': isOnline,
+        'isMentor': isMentor,
+        'isPinned': isPinned,
+        'isMuted': isMuted,
+        'unreadCount': unreadCount,
+        'lastMessage': lastMessage,
+        'lastMessageTime': lastMessageTime,
+        'lastMessageIsSeen': lastMessageIsSeen,
+        'messages': messages.map((e) => e.toJson()).toList(),
+      };
 
   ChatConversation copyWith({
     String? id,
-    String? peerUserId,
     String? peerName,
     String? peerRole,
     String? peerAvatar,
@@ -143,17 +118,14 @@ class ChatConversation {
     bool? isMentor,
     bool? isPinned,
     bool? isMuted,
-    bool? isHidden,
     int? unreadCount,
     String? lastMessage,
-    String? lastMessageSenderId,
     String? lastMessageTime,
     bool? lastMessageIsSeen,
     List<DirectMessage>? messages,
   }) {
     return ChatConversation(
       id: id ?? this.id,
-      peerUserId: peerUserId ?? this.peerUserId,
       peerName: peerName ?? this.peerName,
       peerRole: peerRole ?? this.peerRole,
       peerAvatar: peerAvatar ?? this.peerAvatar,
@@ -161,10 +133,8 @@ class ChatConversation {
       isMentor: isMentor ?? this.isMentor,
       isPinned: isPinned ?? this.isPinned,
       isMuted: isMuted ?? this.isMuted,
-      isHidden: isHidden ?? this.isHidden,
       unreadCount: unreadCount ?? this.unreadCount,
       lastMessage: lastMessage ?? this.lastMessage,
-      lastMessageSenderId: lastMessageSenderId ?? this.lastMessageSenderId,
       lastMessageTime: lastMessageTime ?? this.lastMessageTime,
       lastMessageIsSeen: lastMessageIsSeen ?? this.lastMessageIsSeen,
       messages: messages ?? this.messages,

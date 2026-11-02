@@ -1,0 +1,101 @@
+import 'package:alumni_connect/features/chat/data/models/chat_model.dart';
+
+class ChatMockData {
+  static final List<ChatConversation> mockConversations = [
+    ChatConversation(
+      id: 'chat_thao',
+      peerName: 'Lê Thị Thu Thảo',
+      peerRole: 'Senior PM @ FPT Software • Mentor',
+      peerAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150',
+      isOnline: true,
+      isMentor: true,
+      isPinned: true,
+      unreadCount: 2,
+      lastMessage: 'Anh đã duyệt lịch hẹn mentoring chiều Thứ 5 lúc 14:00 rồi nhé. Em chuẩn bị trước câu hỏi về System Design nhé!',
+      lastMessageTime: '10:45',
+      lastMessageIsSeen: false,
+      messages: [
+        DirectMessage(
+          id: 'm1',
+          senderId: 'user_an',
+          content: 'Dạ em chào chị Thảo ạ! Em là An, sinh viên K16 SE FPT Đà Nẵng.',
+          timestamp: DateTime.now().subtract(const Duration(hours: 3)),
+          isSeen: true,
+        ),
+        DirectMessage(
+          id: 'm2',
+          senderId: 'user_an',
+          content: 'Em đã gửi đơn đặt lịch hẹn Mentoring 1-1 qua hệ thống Alumni Connect, chị xem qua giúp em với nhé ạ!',
+          timestamp: DateTime.now().subtract(const Duration(hours: 3)),
+          isSeen: true,
+        ),
+        DirectMessage(
+          id: 'm3',
+          senderId: 'chat_thao',
+          content: 'Chào An! Chị đã nhận được thông tin và CV của em rồi.',
+          timestamp: DateTime.now().subtract(const Duration(hours: 2)),
+          isSeen: true,
+        ),
+        DirectMessage(
+          id: 'm4',
+          senderId: 'chat_thao',
+          content: 'Anh đã duyệt lịch hẹn mentoring chiều Thứ 5 lúc 14:00 rồi nhé. Em chuẩn bị trước câu hỏi về System Design nhé!',
+          timestamp: DateTime.now().subtract(const Duration(minutes: 30)),
+          isSeen: false,
+          meetLink: 'https://meet.google.com/fpt-alumni-thao',
+        ),
+      ],
+    ),
+    ChatConversation(
+      id: 'chat_long',
+      peerName: 'Trần Hoàng Long',
+      peerRole: 'Tech Lead @ TechCorp • Alumni K14',
+      peerAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+      isOnline: true,
+      isMentor: true,
+      isPinned: false,
+      unreadCount: 0,
+      lastMessage: 'CV của em gửi anh thấy khá ổn, lưu ý thêm phần metrics dự án Capstone nhé.',
+      lastMessageTime: 'Hôm qua',
+      lastMessageIsSeen: true,
+      messages: [
+        DirectMessage(
+          id: 'm10',
+          senderId: 'user_an',
+          content: 'Em chào anh Long! Anh xem giúp em CV với ạ.',
+          timestamp: DateTime.now().subtract(const Duration(days: 1)),
+          isSeen: true,
+        ),
+        DirectMessage(
+          id: 'm11',
+          senderId: 'chat_long',
+          content: 'CV của em gửi anh thấy khá ổn, lưu ý thêm phần metrics dự án Capstone nhé.',
+          timestamp: DateTime.now().subtract(const Duration(days: 1)),
+          isSeen: true,
+        ),
+      ],
+    ),
+    ChatConversation(
+      id: 'chat_dung',
+      peerName: 'Lê Thuỳ Dung',
+      peerRole: 'HR Talent Partner @ FPT Software • K15',
+      peerAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+      isOnline: false,
+      isMentor: false,
+      isPinned: false,
+      unreadCount: 0,
+      lastMessage: 'Chị đã chuyển CV của em sang bộ phận phỏng vấn Fresher Frontend rồi nhé!',
+      lastMessageTime: '2 ngày trước',
+      lastMessageIsSeen: true,
+      messages: [
+        DirectMessage(
+          id: 'm20',
+          senderId: 'chat_dung',
+          content: 'Chị đã chuyển CV của em sang bộ phận phỏng vấn Fresher Frontend rồi nhé!',
+          timestamp: DateTime.now().subtract(const Duration(days: 2)),
+          isSeen: true,
+        ),
+      ],
+    ),
+  ];
+}

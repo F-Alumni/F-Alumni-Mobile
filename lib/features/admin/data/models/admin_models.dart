@@ -3,9 +3,7 @@ class AdminUserItem {
   final String name;
   final String email;
   final String studentId;
-  final String
-  role; // 'Alumni Mentor', 'Verified Alumni', 'Sinh viên', 'Tài khoản thường'
-  final String systemRole;
+  final String role; // 'Alumni Mentor', 'Verified Alumni', 'Sinh viên', 'Tài khoản thường'
   final String campus;
   final String avatarUrl;
   final bool isLocked; // AD-03
@@ -19,7 +17,6 @@ class AdminUserItem {
     required this.email,
     required this.studentId,
     required this.role,
-    this.systemRole = 'USER',
     required this.campus,
     required this.avatarUrl,
     this.isLocked = false,
@@ -34,7 +31,6 @@ class AdminUserItem {
     String? email,
     String? studentId,
     String? role,
-    String? systemRole,
     String? campus,
     String? avatarUrl,
     bool? isLocked,
@@ -48,14 +44,60 @@ class AdminUserItem {
       email: email ?? this.email,
       studentId: studentId ?? this.studentId,
       role: role ?? this.role,
-      systemRole: systemRole ?? this.systemRole,
       campus: campus ?? this.campus,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       isLocked: isLocked ?? this.isLocked,
       lockReason: lockReason ?? this.lockReason,
-      isPendingVerification:
-          isPendingVerification ?? this.isPendingVerification,
+      isPendingVerification: isPendingVerification ?? this.isPendingVerification,
       diplomaCode: diplomaCode ?? this.diplomaCode,
+    );
+  }
+}
+
+class ModerationReportItem {
+  final String id;
+  final String postId;
+  final String postTitle;
+  final String postAuthor;
+  final String reporterName;
+  final String reason;
+  final String reportTime;
+  final bool isResolved; // Đã xử lý hay chưa
+  final bool isHidden; // AD-05 (Đã ẩn hoặc gỡ bài)
+
+  const ModerationReportItem({
+    required this.id,
+    required this.postId,
+    required this.postTitle,
+    required this.postAuthor,
+    required this.reporterName,
+    required this.reason,
+    required this.reportTime,
+    this.isResolved = false,
+    this.isHidden = false,
+  });
+
+  ModerationReportItem copyWith({
+    String? id,
+    String? postId,
+    String? postTitle,
+    String? postAuthor,
+    String? reporterName,
+    String? reason,
+    String? reportTime,
+    bool? isResolved,
+    bool? isHidden,
+  }) {
+    return ModerationReportItem(
+      id: id ?? this.id,
+      postId: postId ?? this.postId,
+      postTitle: postTitle ?? this.postTitle,
+      postAuthor: postAuthor ?? this.postAuthor,
+      reporterName: reporterName ?? this.reporterName,
+      reason: reason ?? this.reason,
+      reportTime: reportTime ?? this.reportTime,
+      isResolved: isResolved ?? this.isResolved,
+      isHidden: isHidden ?? this.isHidden,
     );
   }
 }

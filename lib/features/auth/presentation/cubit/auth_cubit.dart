@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:alumni_connect/features/auth/data/auth_repository.dart';
 import 'package:alumni_connect/features/auth/data/models/auth_model.dart';
+
+// ─── States ───────────────────────────────────────────────────────────────────
 
 abstract class AuthState {}
 
@@ -9,152 +10,65 @@ class AuthInitial extends AuthState {}
 class AuthLoading extends AuthState {}
 
 class AuthAuthenticated extends AuthState {
-  AuthAuthenticated(this.user);
   final AuthUser user;
+  AuthAuthenticated(this.user);
 }
 
 class AuthUnauthenticated extends AuthState {}
 
 class AuthError extends AuthState {
-  AuthError(this.message);
   final String message;
+  AuthError(this.message);
 }
 
-class AuthCubit extends Cubit<AuthState> {
-  AuthCubit(this._repository) : super(AuthInitial());
-  final AuthRepository _repository;
+// ─── Cubit ────────────────────────────────────────────────────────────────────
 
-  Future<void> restoreSession() async {
-    try {
-      emit(AuthAuthenticated(await _repository.restoreSession()));
-    } catch (_) {
-      emit(AuthUnauthenticated());
-    }
+class AuthCubit extends Cubit<AuthState> {
+  AuthCubit() : super(AuthUnauthenticated());
+
+  /// US-01: Login with FPT Google account (mock — accept any @fpt.edu.vn email)
+  Future<void> loginWithGoogle() async {
+    emit(AuthLoading());
+    await Future.delayed(const Duration(milliseconds: 1500));
+
+    // Mock: simulate successful Google SSO with FPT account
+    emit(AuthAuthenticated(_mockUser));
   }
 
+  /// US-01: Login with email + password (mock)
   Future<void> loginWithEmailPassword({
     required String email,
     required String password,
   }) async {
     emit(AuthLoading());
-    try {
-      emit(AuthAuthenticated(await _repository.login(email.trim(), password)));
-    } catch (error) {
-      emit(AuthError(error.toString()));
+    await Future.delayed(const Duration(milliseconds: 1200));
+
+    if (!email.endsWith('@fpt.edu.vn') && !email.endsWith('@fe.edu.vn')) {
+      emit(AuthError('Chỉ hỗ trợ tài khoản FPT Mail (@fpt.edu.vn hoặc @fe.edu.vn)'));
+      return;
     }
+    if (password.length < 6) {
+      emit(AuthError('Mật khẩu phải có ít nhất 6 ký tự'));
+      return;
+    }
+
+    emit(AuthAuthenticated(_mockUser));
   }
 
-  Future<void> loginWithGoogle() async {
-    emit(AuthLoading());
-    try {
-      emit(AuthAuthenticated(await _repository.loginWithGoogle()));
-    } catch (error) {
-      emit(AuthError(error.toString()));
-    }
+  /// US-08: Logout
+  void logout() {
+    emit(AuthUnauthenticated());
   }
 
-  Future<String?> register({
-    required String email,
-    required String password,
-    required String fullName,
-  }) async {
-    emit(AuthLoading());
-    try {
-      await _repository.register(
-        email: email.trim(),
-        password: password,
-        fullName: fullName.trim(),
-      );
-      emit(AuthUnauthenticated());
-      return null;
-    } catch (error) {
-      emit(AuthUnauthenticated());
-      return error.toString();
-    }
-  }
-
-  Future<String?> verifyEmail({
-    required String email,
-    required String otpCode,
-  }) async {
-    emit(AuthLoading());
-    try {
-      emit(
-        AuthAuthenticated(
-          await _repository.verifyEmail(
-            email: email.trim(),
-            otpCode: otpCode.trim(),
-          ),
-        ),
-      );
-      return null;
-    } catch (error) {
-      emit(AuthUnauthenticated());
-      return error.toString();
-    }
-  }
-
-  Future<String?> requestPasswordReset(String email) async {
-    emit(AuthLoading());
-    try {
-      await _repository.requestPasswordReset(email.trim());
-      emit(AuthUnauthenticated());
-      return null;
-    } catch (error) {
-      emit(AuthUnauthenticated());
-      return error.toString();
-    }
-  }
-
-  Future<String?> resetPassword({
-    required String email,
-    required String otpCode,
-    required String newPassword,
-  }) async {
-    emit(AuthLoading());
-    try {
-      await _repository.resetPassword(
-        email: email.trim(),
-        otpCode: otpCode.trim(),
-        newPassword: newPassword,
-      );
-      emit(AuthUnauthenticated());
-      return null;
-    } catch (error) {
-      emit(AuthUnauthenticated());
-      return error.toString();
-    }
-  }
-
-  Future<String?> changePassword({
-    required String currentPassword,
-    required String newPassword,
-  }) async {
-    final previousState = state;
-    emit(AuthLoading());
-    try {
-      await _repository.changePassword(
-        currentPassword: currentPassword,
-        newPassword: newPassword,
-      );
-      emit(
-        previousState is AuthAuthenticated
-            ? previousState
-            : AuthUnauthenticated(),
-      );
-      return null;
-    } catch (error) {
-      emit(AuthError(error.toString()));
-      return error.toString();
-    }
-  }
-
-  Future<void> logout() async {
-    emit(AuthLoading());
-    try {
-      await _repository.logout();
-    } finally {
-      emit(AuthUnauthenticated());
-    }
-  }
+  // Mock authenticated user (Student An K16 FPT Đà Nẵng)
+  static const _mockUser = AuthUser(
+    id: 'user_001',
+    name: 'Nguyễn Thị An',
+    email: 'anhnt.k16@fpt.edu.vn',
+    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
+    isAlumni: false,
+    isVerified: true,
+    campus: 'FPT Đà Nẵng',
+    cohort: 'K16',
+  );
 }

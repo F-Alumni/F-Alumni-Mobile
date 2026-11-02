@@ -33,10 +33,6 @@ migrate_working_dir/
 /build/
 /coverage/
 
-# Local Firebase configuration. Supply API keys through --dart-define-from-file.
-/android/app/google-services.json
-/firebase.local.json
-
 # Symbolication related
 app.*.symbols
 

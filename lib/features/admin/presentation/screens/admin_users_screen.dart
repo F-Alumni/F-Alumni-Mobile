@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:alumni_connect/core/theme/app_colors.dart';
 import 'package:alumni_connect/core/theme/app_typography.dart';
 import 'package:alumni_connect/features/admin/presentation/cubit/admin_cubit.dart';
-import 'package:alumni_connect/features/admin/data/models/admin_models.dart';
 
 class AdminUsersScreen extends StatefulWidget {
   const AdminUsersScreen({super.key});
@@ -17,9 +16,9 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
 
   final List<String> _roleFilters = [
     'Tất cả',
-    'Cựu sinh viên',
+    'Mentor',
     'Bị khóa',
-    'Chưa xác minh',
+    'Chờ duyệt',
   ];
 
   @override
@@ -28,18 +27,11 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     super.dispose();
   }
 
-  void _showLockConfirmDialog(
-    BuildContext context,
-    String userId,
-    String userName,
-    bool isCurrentlyLocked,
-  ) {
+  void _showLockConfirmDialog(BuildContext context, String userId, String userName, bool isCurrentlyLocked) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(
-          isCurrentlyLocked ? 'Mở khóa tài khoản?' : 'Khóa tài khoản vi phạm?',
-        ),
+        title: Text(isCurrentlyLocked ? 'Mở khóa tài khoản?' : 'Khóa tài khoản vi phạm?'),
         content: Text(
           isCurrentlyLocked
               ? 'Xác nhận mở khóa hoạt động trở lại cho người dùng $userName?'
@@ -52,14 +44,18 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: isCurrentlyLocked
-                  ? AppColors.accent
-                  : AppColors.error,
+              backgroundColor: isCurrentlyLocked ? AppColors.accent : AppColors.error,
               foregroundColor: Colors.white,
             ),
             onPressed: () {
               Navigator.of(ctx).pop();
               context.read<AdminCubit>().toggleLockUser(userId);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(isCurrentlyLocked ? 'Đã mở khóa $userName' : 'Đã khóa tài khoản $userName'),
+                  backgroundColor: isCurrentlyLocked ? AppColors.accent : AppColors.error,
+                ),
+              );
             },
             child: Text(isCurrentlyLocked ? 'Mở khóa' : 'Khóa tài khoản'),
           ),
@@ -73,11 +69,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     return BlocBuilder<AdminCubit, AdminState>(
       builder: (context, state) {
         if (state is! AdminLoaded) {
-          return Center(
-            child: state is AdminError
-                ? Text(state.message)
-                : const CircularProgressIndicator(),
-          );
+          return const Center(child: CircularProgressIndicator());
         }
 
         final users = state.filteredUsers;
@@ -92,27 +84,13 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                 onChanged: (val) => context.read<AdminCubit>().searchUsers(val),
                 decoration: InputDecoration(
                   hintText: 'Tìm theo tên, email @fpt.edu.vn, MSSV...',
-                  hintStyle: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                  prefixIcon: const Icon(
-                    Icons.search,
-                    color: AppColors.textSecondary,
-                  ),
+                  hintStyle: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
+                  prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
                   filled: true,
                   fillColor: AppColors.surface,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(color: AppColors.border),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(color: AppColors.border),
-                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.border)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppColors.border)),
                 ),
               ),
             ),
@@ -131,24 +109,17 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                   return ChoiceChip(
                     label: Text(filter),
                     selected: isSelected,
-                    onSelected: (_) =>
-                        context.read<AdminCubit>().filterUsersByRole(filter),
+                    onSelected: (_) => context.read<AdminCubit>().filterUsersByRole(filter),
                     selectedColor: AppColors.primary,
                     backgroundColor: AppColors.surface,
                     labelStyle: TextStyle(
                       color: isSelected ? Colors.white : AppColors.textPrimary,
                       fontSize: 12,
-                      fontWeight: isSelected
-                          ? FontWeight.bold
-                          : FontWeight.normal,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
-                      side: BorderSide(
-                        color: isSelected
-                            ? AppColors.primary
-                            : AppColors.border,
-                      ),
+                      side: BorderSide(color: isSelected ? AppColors.primary : AppColors.border),
                     ),
                   );
                 },
@@ -162,9 +133,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                   ? Center(
                       child: Text(
                         'Không tìm thấy người dùng phù hợp',
-                        style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
+                        style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
                       ),
                     )
                   : ListView.builder(
@@ -173,20 +142,13 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                       itemBuilder: (context, index) {
                         final user = users[index];
                         return Container(
-                          margin: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 6,
-                          ),
+                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: user.isLocked
-                                ? AppColors.error.withOpacity(0.04)
-                                : AppColors.surface,
+                            color: user.isLocked ? AppColors.error.withOpacity(0.04) : AppColors.surface,
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: user.isLocked
-                                  ? AppColors.error.withOpacity(0.4)
-                                  : AppColors.border,
+                              color: user.isLocked ? AppColors.error.withOpacity(0.4) : AppColors.border,
                             ),
                           ),
                           child: Column(
@@ -196,56 +158,35 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                                 children: [
                                   CircleAvatar(
                                     radius: 22,
-                                    backgroundImage: user.avatarUrl.isEmpty
-                                        ? null
-                                        : NetworkImage(user.avatarUrl),
-                                    child: user.avatarUrl.isEmpty
-                                        ? const Icon(Icons.person_outline)
-                                        : null,
+                                    backgroundImage: NetworkImage(user.avatarUrl),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Row(
                                           children: [
                                             Flexible(
                                               child: Text(
                                                 user.name,
-                                                style: AppTypography.titleSmall
-                                                    .copyWith(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
+                                                style: AppTypography.titleSmall.copyWith(fontWeight: FontWeight.bold),
                                                 overflow: TextOverflow.ellipsis,
                                               ),
                                             ),
                                             const SizedBox(width: 6),
                                             Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 6,
-                                                    vertical: 1,
-                                                  ),
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                                               decoration: BoxDecoration(
                                                 color: user.isLocked
-                                                    ? AppColors.error
-                                                          .withOpacity(0.12)
-                                                    : AppColors.secondary
-                                                          .withOpacity(0.1),
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
+                                                    ? AppColors.error.withOpacity(0.12)
+                                                    : AppColors.secondary.withOpacity(0.1),
+                                                borderRadius: BorderRadius.circular(8),
                                               ),
                                               child: Text(
-                                                user.isLocked
-                                                    ? 'Bị khóa'
-                                                    : user.role,
+                                                user.isLocked ? 'Bị khóa' : user.role,
                                                 style: TextStyle(
-                                                  color: user.isLocked
-                                                      ? AppColors.error
-                                                      : AppColors.secondary,
+                                                  color: user.isLocked ? AppColors.error : AppColors.secondary,
                                                   fontSize: 10,
                                                   fontWeight: FontWeight.bold,
                                                 ),
@@ -255,18 +196,11 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                                         ),
                                         Text(
                                           '${user.email} • ${user.studentId}',
-                                          style: AppTypography.labelSmall
-                                              .copyWith(
-                                                color: AppColors.textSecondary,
-                                              ),
+                                          style: AppTypography.labelSmall.copyWith(color: AppColors.textSecondary),
                                         ),
                                         Text(
                                           user.campus,
-                                          style: AppTypography.labelSmall
-                                              .copyWith(
-                                                color: AppColors.secondary,
-                                                fontWeight: FontWeight.w600,
-                                              ),
+                                          style: AppTypography.labelSmall.copyWith(color: AppColors.secondary, fontWeight: FontWeight.w600),
                                         ),
                                       ],
                                     ),
@@ -274,16 +208,44 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                                 ],
                               ),
 
+                              // If Pending Alumni Verification
+                              if (user.isPendingVerification) ...[
+                                const SizedBox(height: 10),
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withOpacity(0.08),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          user.diplomaCode ?? 'Chứng chỉ/Bằng tốt nghiệp chờ duyệt',
+                                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                                        ),
+                                      ),
+                                      ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: AppColors.accent,
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                          minimumSize: Size.zero,
+                                        ),
+                                        onPressed: () => context.read<AdminCubit>().approveAlumni(user.id),
+                                        child: const Text('Phê duyệt', style: TextStyle(fontSize: 11)),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+
                               // Lock Reason
                               if (user.isLocked && user.lockReason != null) ...[
                                 const SizedBox(height: 8),
                                 Text(
                                   user.lockReason!,
-                                  style: const TextStyle(
-                                    color: AppColors.error,
-                                    fontSize: 11,
-                                    fontStyle: FontStyle.italic,
-                                  ),
+                                  style: const TextStyle(color: AppColors.error, fontSize: 11, fontStyle: FontStyle.italic),
                                 ),
                               ],
 
@@ -296,46 +258,20 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
                                   TextButton.icon(
-                                    icon: const Icon(
-                                      Icons.admin_panel_settings_outlined,
-                                      size: 16,
-                                    ),
-                                    label: Text(
-                                      user.systemRole.toUpperCase() == 'ADMIN'
-                                          ? 'Thu hồi Admin'
-                                          : 'Cấp Admin',
-                                    ),
-                                    onPressed: () =>
-                                        _showRoleConfirmDialog(context, user),
-                                  ),
-                                  TextButton.icon(
                                     icon: Icon(
-                                      user.isLocked
-                                          ? Icons.lock_open
-                                          : Icons.lock_outline,
+                                      user.isLocked ? Icons.lock_open : Icons.lock_outline,
                                       size: 16,
-                                      color: user.isLocked
-                                          ? AppColors.accent
-                                          : AppColors.error,
+                                      color: user.isLocked ? AppColors.accent : AppColors.error,
                                     ),
                                     label: Text(
-                                      user.isLocked
-                                          ? 'Mở khóa'
-                                          : 'Khóa tài khoản',
+                                      user.isLocked ? 'Mở khóa' : 'Khóa tài khoản',
                                       style: TextStyle(
-                                        color: user.isLocked
-                                            ? AppColors.accent
-                                            : AppColors.error,
+                                        color: user.isLocked ? AppColors.accent : AppColors.error,
                                         fontSize: 12,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
-                                    onPressed: () => _showLockConfirmDialog(
-                                      context,
-                                      user.id,
-                                      user.name,
-                                      user.isLocked,
-                                    ),
+                                    onPressed: () => _showLockConfirmDialog(context, user.id, user.name, user.isLocked),
                                   ),
                                 ],
                               ),
@@ -349,32 +285,5 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
         );
       },
     );
-  }
-
-  Future<void> _showRoleConfirmDialog(
-    BuildContext context,
-    AdminUserItem user,
-  ) async {
-    final granting = user.systemRole.toUpperCase() != 'ADMIN';
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(granting ? 'Cấp quyền Admin?' : 'Thu hồi quyền Admin?'),
-        content: Text('Xác nhận thay đổi quyền cho ${user.name}.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Hủy'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Xác nhận'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true && context.mounted) {
-      await context.read<AdminCubit>().toggleAdminRole(user.id);
-    }
   }
 }
