@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:alumni_connect/core/theme/app_colors.dart';
 import 'package:alumni_connect/core/theme/app_typography.dart';
 import 'package:alumni_connect/features/ai/data/models/ai_chat_model.dart';
-import 'package:alumni_connect/features/ai/data/mock/ai_mock_data.dart';
 import 'package:alumni_connect/features/ai/presentation/cubit/ai_chat_cubit.dart';
 
 class AiAssistantScreen extends StatefulWidget {
@@ -15,6 +14,11 @@ class AiAssistantScreen extends StatefulWidget {
 }
 
 class _AiAssistantScreenState extends State<AiAssistantScreen> {
+  static const _prompts = <String>[
+    'Môn năm nhất nào cần ưu tiên?',
+    'Làm sao chuẩn bị OJT?',
+    'Tìm mentor phù hợp với tôi',
+  ];
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
@@ -49,6 +53,60 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
     _scrollToBottom();
   }
 
+  Future<void> _showHistory() async {
+    final cubit = context.read<AiChatCubit>();
+    try {
+      final sessions = await cubit.loadConversations();
+      if (!mounted) return;
+      await showModalBottomSheet<void>(
+        context: context,
+        builder: (sheetContext) => SafeArea(
+          child: sessions.isEmpty
+              ? const Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Text('Chưa có hội thoại AI nào.'),
+                )
+              : ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: sessions.length,
+                  itemBuilder: (context, index) {
+                    final session = sessions[index];
+                    return ListTile(
+                      leading: const Icon(Icons.chat_bubble_outline),
+                      title: Text(
+                        '${session['title'] ?? 'Hội thoại AI'}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(
+                        '${session['lastMessageAt'] ?? session['createdAt'] ?? ''}',
+                      ),
+                      onTap: () async {
+                        Navigator.pop(sheetContext);
+                        try {
+                          await cubit.openConversation(
+                            '${session['id'] ?? ''}',
+                          );
+                        } catch (error) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(error.toString())),
+                            );
+                          }
+                        }
+                      },
+                    );
+                  },
+                ),
+        ),
+      );
+    } catch (error) {
+      if (mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.toString())));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -66,7 +124,11 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                 ),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
+              child: const Icon(
+                Icons.auto_awesome,
+                color: Colors.white,
+                size: 20,
+              ),
             ),
             const SizedBox(width: 10),
             Column(
@@ -74,17 +136,26 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
               children: [
                 Text(
                   'Alumni AI Assistant',
-                  style: AppTypography.titleMedium.copyWith(fontWeight: FontWeight.bold),
+                  style: AppTypography.titleMedium.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 Text(
                   'Trí tuệ nhân tạo Cựu sinh viên FPT (AI-01 → AI-04)',
-                  style: AppTypography.labelSmall.copyWith(color: AppColors.textSecondary),
+                  style: AppTypography.labelSmall.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.history, color: AppColors.textSecondary),
+            tooltip: 'Lịch sử hội thoại',
+            onPressed: _showHistory,
+          ),
           IconButton(
             icon: const Icon(Icons.refresh, color: AppColors.textSecondary),
             tooltip: 'Tạo hội thoại mới',
@@ -103,7 +174,9 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
         },
         builder: (context, state) {
           if (state is! AiChatLoaded) {
-            return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+            return const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            );
           }
 
           final messages = state.messages;
@@ -118,12 +191,15 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                   child: ListView.separated(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     scrollDirection: Axis.horizontal,
-                    itemCount: AiMockData.initialPrompts.length,
+                    itemCount: _prompts.length,
                     separatorBuilder: (_, __) => const SizedBox(width: 8),
                     itemBuilder: (context, index) {
-                      final prompt = AiMockData.initialPrompts[index];
+                      final prompt = _prompts[index];
                       return ActionChip(
-                        label: Text(prompt, style: const TextStyle(fontSize: 12)),
+                        label: Text(
+                          prompt,
+                          style: const TextStyle(fontSize: 12),
+                        ),
                         backgroundColor: AppColors.surface,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
@@ -140,7 +216,10 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
               Expanded(
                 child: ListView.builder(
                   controller: _scrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   itemCount: messages.length + (state.isGenerating ? 1 : 0),
                   itemBuilder: (context, index) {
                     if (index == messages.length && state.isGenerating) {
@@ -185,7 +264,10 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
           ),
           child: Text(
             msg.content,
-            style: AppTypography.bodyMedium.copyWith(color: Colors.white, height: 1.4),
+            style: AppTypography.bodyMedium.copyWith(
+              color: Colors.white,
+              height: 1.4,
+            ),
           ),
         ),
       );
@@ -200,7 +282,11 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
           CircleAvatar(
             radius: 16,
             backgroundColor: AppColors.secondary.withOpacity(0.1),
-            child: const Icon(Icons.auto_awesome, color: AppColors.secondary, size: 18),
+            child: const Icon(
+              Icons.auto_awesome,
+              color: AppColors.secondary,
+              size: 18,
+            ),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -221,7 +307,10 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                   ),
                   child: Text(
                     msg.content,
-                    style: AppTypography.bodyMedium.copyWith(color: AppColors.textPrimary, height: 1.5),
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: AppColors.textPrimary,
+                      height: 1.5,
+                    ),
                   ),
                 ),
 
@@ -239,10 +328,15 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                   Column(
                     children: msg.sources.map((src) {
                       return GestureDetector(
-                        onTap: () => context.push('/post-detail/${src.postId}'),
+                        onTap: src.postId.isEmpty
+                            ? null
+                            : () => context.push('/post-detail/${src.postId}'),
                         child: Container(
                           margin: const EdgeInsets.only(bottom: 4),
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.surfaceVariant.withOpacity(0.6),
                             borderRadius: BorderRadius.circular(8),
@@ -250,7 +344,11 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.link, size: 14, color: AppColors.secondary),
+                              const Icon(
+                                Icons.link,
+                                size: 14,
+                                color: AppColors.secondary,
+                              ),
                               const SizedBox(width: 6),
                               Expanded(
                                 child: Text(
@@ -262,7 +360,11 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                              const Icon(Icons.arrow_forward_ios, size: 10, color: AppColors.textSecondary),
+                              const Icon(
+                                Icons.arrow_forward_ios,
+                                size: 10,
+                                color: AppColors.textSecondary,
+                              ),
                             ],
                           ),
                         ),
@@ -282,16 +384,25 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                         onTap: () => _sendMessage(q),
                         borderRadius: BorderRadius.circular(14),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.primary.withOpacity(0.08),
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                            border: Border.all(
+                              color: AppColors.primary.withOpacity(0.2),
+                            ),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.subdirectory_arrow_right, size: 12, color: AppColors.primary),
+                              const Icon(
+                                Icons.subdirectory_arrow_right,
+                                size: 12,
+                                color: AppColors.primary,
+                              ),
                               const SizedBox(width: 4),
                               Flexible(
                                 child: Text(
@@ -325,7 +436,11 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
           CircleAvatar(
             radius: 16,
             backgroundColor: AppColors.secondary.withOpacity(0.1),
-            child: const Icon(Icons.auto_awesome, color: AppColors.secondary, size: 18),
+            child: const Icon(
+              Icons.auto_awesome,
+              color: AppColors.secondary,
+              size: 18,
+            ),
           ),
           const SizedBox(width: 10),
           Container(
@@ -341,12 +456,17 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                 const SizedBox(
                   width: 14,
                   height: 14,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.primary,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Text(
                   'Alumni AI đang tra cứu kho tri thức FPT...',
-                  style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),
@@ -376,10 +496,15 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
               enabled: !isGenerating,
               decoration: InputDecoration(
                 hintText: 'Hỏi AI về kinh nghiệm OJT, Capstone, phỏng vấn...',
-                hintStyle: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
+                hintStyle: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.textSecondary,
+                ),
                 filled: true,
                 fillColor: AppColors.background,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
                   borderSide: const BorderSide(color: AppColors.border),

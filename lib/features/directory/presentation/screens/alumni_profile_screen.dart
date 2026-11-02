@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:alumni_connect/core/theme/app_colors.dart';
 import 'package:alumni_connect/features/directory/data/models/alumni_model.dart';
-import 'package:alumni_connect/features/directory/data/mock/directory_mock_data.dart';
+import 'package:alumni_connect/core/network/alumni_api.dart';
+import 'package:alumni_connect/features/directory/data/directory_repository.dart';
+import 'package:alumni_connect/features/chat/presentation/cubit/chat_cubit.dart';
 
 class AlumniProfileScreen extends StatelessWidget {
   final String alumniId;
@@ -11,11 +14,33 @@ class AlumniProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final alumni = DirectoryMockData.alumniList.firstWhere(
-      (a) => a.id == alumniId,
-      orElse: () => DirectoryMockData.alumniList.first,
+    return FutureBuilder<AlumniModel>(
+      future: DirectoryRepository(AlumniApi()).getProfile(alumniId),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Scaffold(
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  snapshot.error.toString(),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          );
+        }
+        if (!snapshot.hasData) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        return _buildProfile(context, snapshot.data!);
+      },
     );
+  }
 
+  Widget _buildProfile(BuildContext context, AlumniModel alumni) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -24,10 +49,7 @@ class AlumniProfileScreen extends StatelessWidget {
           onPressed: () => context.pop(),
         ),
         title: const Text('Hồ sơ Cựu sinh viên'),
-        actions: [
-          IconButton(icon: const Icon(Icons.bookmark_border), onPressed: () {}),
-          IconButton(icon: const Icon(Icons.share_outlined), onPressed: () {}),
-        ],
+        actions: [],
       ),
       body: ListView(
         padding: const EdgeInsets.only(bottom: 90),
@@ -43,7 +65,12 @@ class AlumniProfileScreen extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       radius: 44,
-                      backgroundImage: NetworkImage(alumni.avatarUrl),
+                      backgroundImage: alumni.avatarUrl.isEmpty
+                          ? null
+                          : NetworkImage(alumni.avatarUrl),
+                      child: alumni.avatarUrl.isEmpty
+                          ? const Icon(Icons.person_outline)
+                          : null,
                     ),
                     Container(
                       width: 20,
@@ -62,27 +89,46 @@ class AlumniProfileScreen extends StatelessWidget {
                   children: [
                     Text(
                       alumni.name,
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                     const SizedBox(width: 4),
-                    const Icon(Icons.verified, color: AppColors.fptGreen, size: 20),
+                    if (alumni.isVerified)
+                      const Icon(
+                        Icons.verified,
+                        color: AppColors.fptGreen,
+                        size: 20,
+                      ),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '${alumni.currentRole} @ ${alumni.company}',
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.fptBlue),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.fptBlue,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '${alumni.cohort} ${alumni.major} • ${alumni.campus}',
-                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 const SizedBox(height: 12),
 
                 // Status pill
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFECFDF5),
                     borderRadius: BorderRadius.circular(20),
@@ -90,30 +136,14 @@ class AlumniProfileScreen extends StatelessWidget {
                   ),
                   child: const Text(
                     '● Đang mở lịch Mentoring 1-1 (Miễn phí cho SV FPT)',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF065F46)),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF065F46),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
-
-                // Stats row
-                Container(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildStat('520+', 'Kết nối'),
-                      _buildDivider(),
-                      _buildStat('${alumni.completedSessions}', 'Buổi Mentor'),
-                      _buildDivider(),
-                      _buildStat('${alumni.rating} ⭐', '${alumni.reviewsCount} Đánh giá'),
-                    ],
-                  ),
-                ),
               ],
             ),
           ),
@@ -124,7 +154,11 @@ class AlumniProfileScreen extends StatelessWidget {
             title: 'Giới thiệu bản thân (Bio)',
             content: Text(
               alumni.bio,
-              style: const TextStyle(fontSize: 14, height: 1.5, color: Color(0xFF334155)),
+              style: const TextStyle(
+                fontSize: 14,
+                height: 1.5,
+                color: Color(0xFF334155),
+              ),
             ),
           ),
           const SizedBox(height: 10),
@@ -137,7 +171,10 @@ class AlumniProfileScreen extends StatelessWidget {
               runSpacing: 8,
               children: alumni.skills.map((s) {
                 return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFF1F5F9),
                     borderRadius: BorderRadius.circular(8),
@@ -145,26 +182,17 @@ class AlumniProfileScreen extends StatelessWidget {
                   ),
                   child: Text(
                     s,
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                 );
               }).toList(),
             ),
           ),
           const SizedBox(height: 10),
-
-          // Experience
-          _buildSectionCard(
-            title: 'Hành trình sự nghiệp',
-            content: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text('• 2022 - Hiện tại: Tech Lead @ TechCorp Vietnam', style: TextStyle(fontSize: 13, height: 1.5)),
-                Text('• 2020 - 2022: Senior Backend Engineer @ FPT Software Global', style: TextStyle(fontSize: 13, height: 1.5)),
-                Text('• 2016 - 2020: Thủ khoa Kỹ thuật phần mềm - Đại học FPT (K14)', style: TextStyle(fontSize: 13, height: 1.5)),
-              ],
-            ),
-          ),
         ],
       ),
       bottomSheet: Container(
@@ -176,25 +204,51 @@ class AlumniProfileScreen extends StatelessWidget {
         child: Row(
           children: [
             OutlinedButton(
-              onPressed: () => context.push('/chat/${alumni.id}'),
+              onPressed: () async {
+                try {
+                  final id = await context.read<ChatCubit>().createConversation(
+                    alumni.id,
+                  );
+                  if (context.mounted) context.push('/chat/$id');
+                } catch (error) {
+                  if (context.mounted)
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text(error.toString())));
+                }
+              },
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: AppColors.fptBlue),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 padding: const EdgeInsets.all(12),
               ),
-              child: const Icon(Icons.chat_bubble_outline, color: AppColors.fptBlue),
+              child: const Icon(
+                Icons.chat_bubble_outline,
+                color: AppColors.fptBlue,
+              ),
             ),
             const SizedBox(width: 10),
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: () => context.push('/booking/${alumni.id}'),
+                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Backend hiện chưa có API đặt lịch mentor.'),
+                  ),
+                ),
                 icon: const Icon(Icons.calendar_month),
-                label: const Text('Đặt lịch Mentoring 1-1', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                label: const Text(
+                  'Đặt lịch Mentoring 1-1',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.fptOrange,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ),
@@ -216,25 +270,18 @@ class AlumniProfileScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
           const SizedBox(height: 10),
           content,
         ],
       ),
     );
-  }
-
-  Widget _buildStat(String val, String label) {
-    return Column(
-      children: [
-        Text(val, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-        const SizedBox(height: 2),
-        Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-      ],
-    );
-  }
-
-  Widget _buildDivider() {
-    return Container(height: 24, width: 1, color: AppColors.border);
   }
 }
