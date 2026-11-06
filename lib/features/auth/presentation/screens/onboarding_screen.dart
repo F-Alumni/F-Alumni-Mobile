@@ -188,68 +188,71 @@ class _OnboardingPageView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Illustration circle
-          Container(
-            width: 200,
-            height: 200,
-            decoration: BoxDecoration(
-              color: page.illustrationColor.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Icon(
-                page.illustration,
-                size: 96,
-                color: page.illustrationColor,
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Illustration circle
+            Container(
+              width: 170,
+              height: 170,
+              decoration: BoxDecoration(
+                color: page.illustrationColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Icon(
+                  page.illustration,
+                  size: 80,
+                  color: page.illustrationColor,
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 48),
+            const SizedBox(height: 24),
 
-          // User story tag
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: page.illustrationColor.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(12),
+            // User story tag
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: page.illustrationColor.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                page.tag,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: page.illustrationColor,
+                ),
+              ),
             ),
-            child: Text(
-              page.tag,
-              style: TextStyle(
-                fontSize: 11,
+            const SizedBox(height: 16),
+
+            // Title
+            Text(
+              page.title,
+              textAlign: TextAlign.center,
+              style: AppTypography.headlineSmall.copyWith(
                 fontWeight: FontWeight.bold,
-                color: page.illustrationColor,
+                color: AppColors.textPrimary,
               ),
             ),
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-          // Title
-          Text(
-            page.title,
-            textAlign: TextAlign.center,
-            style: AppTypography.headlineSmall.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppColors.textPrimary,
+            // Subtitle
+            Text(
+              page.subtitle,
+              textAlign: TextAlign.center,
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.textSecondary,
+                height: 1.6,
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-
-          // Subtitle
-          Text(
-            page.subtitle,
-            textAlign: TextAlign.center,
-            style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textSecondary,
-              height: 1.6,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
