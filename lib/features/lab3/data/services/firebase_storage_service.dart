@@ -60,10 +60,12 @@ class FirebaseStorageService {
       'jpg' || 'jpeg' => 'image/jpeg',
       'png' => 'image/png',
       'webp' => 'image/webp',
+      'pdf' => 'application/pdf',
+      'csv' => 'text/csv',
       _ => throw ArgumentError.value(
         fileName,
         'fileName',
-        'Only JPG, PNG, and WebP images are supported.',
+        'Only JPG, PNG, WebP, PDF, and CSV files are supported.',
       ),
     };
     final reference = _storage.ref('$path/$uid/$safeName');
