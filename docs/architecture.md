@@ -1,73 +1,59 @@
-# Lab 3 Architecture
+# Lab 3 Architecture — MVVM Integration & Firebase Boundaries
 
-## Current application
+## 1. Overview and Design Philosophy
 
-The existing Alumni Connect features use feature-first folders, repositories,
-and `flutter_bloc` Cubits. Their API calls and JWT session are backed by the
-existing .NET services. This Lab 3 work does not silently replace those API
-contracts. Google login now also signs into Firebase; the existing backend
-endpoint still receives the Google OAuth ID token and returns the API JWT.
-Email/password login remains backend-only for now.
-When a backend session is restored, its account ID scopes the local notification
-inbox; signing out clears the active inbox and switches to an anonymous scope.
-
-The mobile API clients target the existing User (5001), Chat (5002), Forum
-(5003), AI (5004), and Admin (5005) services. Recruitment posts from the Forum
-API feed the mobile Jobs list because the backend models recruitment as
-`PostType=Recruitment`; personal posts use the authenticated `GET
-/api/v1/posts/me` endpoint. No separate job-application endpoint is present.
-
-## Lab 3 target boundary
-
-Lab 3 Firebase-facing features use Riverpod for dependency injection and
-ViewModel state, with Firebase SDK access isolated in service classes:
+The Alumni Connect application employs a clean, layered architectural boundary separating the UI Presentation, State Management (Riverpod ViewModels / BLoC Cubits), Domain Repositories, Service Layer, and the underlying Firebase SDKs.
 
 ```text
-View (Widget) -> Riverpod ViewModel/Notifier -> Firebase service -> Firebase SDK
+[ View (UI Widget) ] 
+       │ ▲
+       ▼ │ (UI State: Loading / Content / Empty / Error)
+[ ViewModel / Riverpod Notifier ]
+       │ ▲
+       ▼ │ (DTOs / Business Domain Logic)
+[ Service Layer (Abstraction) ]
+       │ ▲
+       ▼ │ (Firebase APIs & Handlers)
+[ Firebase SDK ]
 ```
 
-The Firebase service implementations live in
-`lib/features/lab3/data/services/`; injectable Riverpod providers live in
-`lib/features/lab3/presentation/providers/`. Views must not import Firebase
-packages or call Firebase SDK methods.
+**Strict MVVM Principle:** Views (Flutter Widgets) NEVER directly import Firebase SDKs or execute Firebase API calls. All cloud operations are mediated through abstract service contracts exposed via Riverpod providers.
 
-Existing Cubit features are retained for legacy app behavior. Lab 3 additions
-use Riverpod ViewModels, including avatar upload and Remote Config UI state.
-The exact three Lab 2 flows still need to be confirmed before declaring the
-overall state-management migration complete.
+---
 
-## Firebase service responsibilities
+## 2. Service Layer Responsibilities
 
-| Service | Responsibility |
-| --- | --- |
-| `FirebaseAuthService` | Google sign-in through Firebase, Firebase identity state, and Firebase/Google sign-out. |
-| `FirebaseStorageService` | UID-scoped image upload under `reports/{uid}/...` and `posts/{uid}/...`, progress, and download URL. |
-| `AvatarUploadViewModel` | Owns image selection, upload state, and coordination between Auth and Storage services. |
-| `FcmMessagingService` | FCM permission status and token, three lifecycle states, account-scoped local inbox, and allowlisted detail routing. |
-| `FirebaseAnalyticsService` | Seven typed events with fixed, non-identifying parameters and Firebase user ID. |
-| `FirebaseCrashlyticsService` | Fatal/non-fatal reporting, global handlers, diagnostic keys, and debug-only crash trigger. |
-| `FirebaseRemoteConfigService` | Defaults, cached fetch/activate, and UI-facing banner/list parameters. |
+| Service | File Location | Responsibility |
+| :--- | :--- | :--- |
+| `FirebaseAuthService` | `lib/features/lab3/data/services/firebase_auth_service.dart` | Handles Google Sign-In, Firebase session identity stream (`authStateChanges`), session exchange with .NET User API (5001), and secure sign-out. |
+| `FirebaseStorageService` | `lib/features/lab3/data/services/firebase_storage_service.dart` | Uploads files strictly scoped to `reports/{uid}/...` and `posts/{uid}/...`. Supports images, PDF, and CSV. Emits real-time progress stream and retrieves secure download URLs. |
+| `FcmMessagingService` | `lib/core/services/fcm_messaging_service.dart` | Manages Android 13+ runtime permissions (`POST_NOTIFICATIONS`), FCM token registration, lifecycle states (Foreground, Background, Terminated), local in-app inbox, and deep link routing. |
+| `FirebaseAnalyticsService` | `lib/features/lab3/data/services/firebase_analytics_service.dart` | Dispatches 8 standardized product events without PII: `login`, `logout`, `search`, `select_content`, `view_item`, `avatar_upload_complete`, `export_file`, `notification_open`. Binds user via `setUserId(user.uid)`. |
+| `FirebaseCrashlyticsService` | `lib/features/lab3/data/services/firebase_crashlytics_service.dart` | Captures uncaught errors globally (`FlutterError.onError`, `PlatformDispatcher.instance.onError`), logs handled non-fatal errors, sets custom diagnostic keys, and provides test crash trigger. |
+| `FirebaseRemoteConfigService` | `lib/features/lab3/data/services/firebase_remote_config_service.dart` | Manages server-driven configurations with local fallback defaults (`is_promo_banner_enabled`, `max_items_display`). Features real-time activation in `kDebugMode` and hourly caching in production. |
 
-## Configuration and unavailable Firebase
+---
 
-Firebase initialization is conditional on valid platform options. Firebase
-service providers return `null` when Firebase has not initialized so local
-development without credentials can still start. Firebase API keys are read
-from the ignored `firebase.local.json` using `--dart-define-from-file`; do not
-commit that file or service account credentials.
+## 3. Cloud Storage Security Architecture (`firebase/storage.rules`)
 
-Required local configuration keys are documented in
-`firebase.local.json.example`. Android also needs the Firebase-generated
-`android/app/google-services.json` file, which is ignored by Git.
+The cloud storage hierarchy enforces strict user-level multi-tenancy and data isolation:
 
-## Remaining integration decisions
+```text
+/b/{bucket}/o/
+  ├── reports/{userId}/{fileName} -> Only owner can read/write; max 10MB; images, PDF, CSV
+  └── posts/{userId}/{fileName}   -> Only owner can write; all authenticated users can read; max 10MB
+```
 
-- Confirm the three assumed flows in `docs/analytics-plan.md` against the Lab 2 handoff.
-- Confirm with the course whether all legacy Cubit features must migrate to Riverpod;
-  current route protection still uses the backend AuthCubit, synchronized with
-  Firebase sign-out changes for Google-authenticated sessions.
-- Configure Firebase Console services, Android fingerprints, and Storage rules.
-- Verify Storage rules in the Firebase Emulator/Console; uploads are limited to
-  the signed-in UID's own `reports/` or `posts/` folder (10 MB maximum). Authenticated
-  users can read post images; report images are readable by their owner only.
-- Verify that Firebase Messaging Console test sends reach the configured device.
+- Unauthenticated operations are strictly rejected (`request.auth != null`).
+- Path traversal and cross-tenant tampering are prevented by binding path `{userId}` to `request.auth.uid`.
+- Resource size is bounded to 10MB to protect against denial-of-wallet risks.
+
+---
+
+## 4. UI State Representation
+
+All interactive features reflect 4 explicit UI states:
+1. **Loading State:** Circular/shimmer progress indicators during network or async I/O.
+2. **Success/Content State:** Clean presentation of fetched feeds, directory lists, job cards, or profile data.
+3. **Empty State:** Descriptive empty illustrations and friendly advice when filters or searches return zero items.
+4. **Error State:** Human-readable error messages with retry actions, preventing app crashes and logging non-fatal diagnostics to Crashlytics.
