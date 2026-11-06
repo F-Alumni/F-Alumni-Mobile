@@ -42,7 +42,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       );
       _commentController.clear();
       _replyTo = null;
-      setState(() => _data = _load());
+      setState(() {
+        _data = _load();
+      });
     } catch (e) {
       if (mounted)
         ScaffoldMessenger.of(
@@ -100,7 +102,11 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     try {
       final (post, _) = await _data;
       await _repository.markAnswered(post.id, !post.isAnswered);
-      if (mounted) setState(() => _data = _load());
+      if (mounted) {
+        setState(() {
+          _data = _load();
+        });
+      }
     } catch (e) {
       if (mounted)
         ScaffoldMessenger.of(context).showSnackBar(
@@ -137,7 +143,11 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     if (content == null || content.isEmpty) return;
     try {
       await _repository.updateComment(comment.id, content);
-      if (mounted) setState(() => _data = _load());
+      if (mounted) {
+        setState(() {
+          _data = _load();
+        });
+      }
     } catch (e) {
       if (mounted)
         ScaffoldMessenger.of(
@@ -166,7 +176,11 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     if (confirmed != true) return;
     try {
       await _repository.deleteComment(comment.id);
-      if (mounted) setState(() => _data = _load());
+      if (mounted) {
+        setState(() {
+          _data = _load();
+        });
+      }
     } catch (e) {
       if (mounted)
         ScaffoldMessenger.of(
@@ -240,7 +254,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                         onPressed: () async {
                           try {
                             await _repository.toggleLike(post.id);
-                            setState(() => _data = _load());
+                            setState(() {
+                              _data = _load();
+                            });
                           } catch (e) {
                             if (mounted)
                               ScaffoldMessenger.of(context)
@@ -295,7 +311,11 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                       onAccept: (comment) async {
                         try {
                           await _repository.acceptAnswer(comment.id);
-                          if (mounted) setState(() => _data = _load());
+                          if (mounted) {
+                            setState(() {
+                              _data = _load();
+                            });
+                          }
                         } catch (e) {
                           if (mounted)
                             ScaffoldMessenger.of(context).showSnackBar(

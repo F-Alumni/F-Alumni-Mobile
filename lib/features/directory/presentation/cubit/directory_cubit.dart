@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:alumni_connect/features/directory/data/directory_repository.dart';
 import 'package:alumni_connect/features/directory/data/models/alumni_model.dart';
 import 'package:alumni_connect/features/ai/data/ai_repository.dart';
+import 'package:alumni_connect/features/lab3/data/services/firebase_analytics_service.dart';
 
 abstract class DirectoryState {}
 
@@ -44,14 +47,34 @@ class DirectoryLoaded extends DirectoryState {
 }
 
 class DirectoryCubit extends Cubit<DirectoryState> {
-  DirectoryCubit(this._repository, this._aiRepository)
+  DirectoryCubit(this._repository, this._aiRepository, {this.analyticsService})
     : super(DirectoryInitial());
   final DirectoryRepository _repository;
   final AiRepository _aiRepository;
+  final FirebaseAnalyticsService? analyticsService;
   bool _mentorFilter = false;
   String _query = '';
   String _campus = '';
   String _major = '';
+
+  void trackAlumniOpened() {
+    final analytics = analyticsService;
+    if (analytics == null) return;
+    unawaited(analytics.logSelectContent(AnalyticsContentType.alumni));
+    unawaited(analytics.logViewItem(AnalyticsContentType.alumni));
+  }
+
+  void trackSearchResults() {
+    if (_query.trim().isEmpty) return;
+    final analytics = analyticsService;
+    if (analytics == null) return;
+    final count = state is DirectoryLoaded
+        ? (state as DirectoryLoaded).alumni.length
+        : null;
+    unawaited(
+      analytics.logSearch(AnalyticsSearchType.alumni, resultCount: count),
+    );
+  }
 
   Future<void> loadDirectory() => _load();
 

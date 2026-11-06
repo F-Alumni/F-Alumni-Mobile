@@ -48,12 +48,25 @@ class JobCardWidget extends StatelessWidget {
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(10),
-                      child: Image.network(
-                        job.companyLogo,
-                        width: 44,
-                        height: 44,
-                        fit: BoxFit.cover,
-                      ),
+                      child: job.companyLogo.isEmpty
+                          ? Container(
+                              width: 44,
+                              height: 44,
+                              color: AppColors.surfaceVariant,
+                              child: const Icon(Icons.work_outline),
+                            )
+                          : Image.network(
+                              job.companyLogo,
+                              width: 44,
+                              height: 44,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) => Container(
+                                width: 44,
+                                height: 44,
+                                color: AppColors.surfaceVariant,
+                                child: const Icon(Icons.work_outline),
+                              ),
+                            ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -83,7 +96,9 @@ class JobCardWidget extends StatelessWidget {
                     IconButton(
                       icon: Icon(
                         job.isSaved ? Icons.bookmark : Icons.bookmark_border,
-                        color: job.isSaved ? AppColors.primary : AppColors.textSecondary,
+                        color: job.isSaved
+                            ? AppColors.primary
+                            : AppColors.textSecondary,
                         size: 22,
                       ),
                       onPressed: onSave,
@@ -96,7 +111,10 @@ class JobCardWidget extends StatelessWidget {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.primary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
@@ -112,7 +130,10 @@ class JobCardWidget extends StatelessWidget {
                     const SizedBox(width: 8),
                     Flexible(
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.surfaceVariant,
                           borderRadius: BorderRadius.circular(8),
@@ -137,31 +158,45 @@ class JobCardWidget extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: AppColors.secondary.withOpacity(0.06),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColors.secondary.withOpacity(0.2)),
+                      border: Border.all(
+                        color: AppColors.secondary.withOpacity(0.2),
+                      ),
                     ),
                     child: Row(
                       children: [
                         CircleAvatar(
                           radius: 14,
-                          backgroundImage: NetworkImage(job.referralAlumniAvatar),
+                          backgroundImage: NetworkImage(
+                            job.referralAlumniAvatar,
+                          ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: RichText(
                             text: TextSpan(
-                              style: AppTypography.labelSmall.copyWith(color: AppColors.textPrimary),
+                              style: AppTypography.labelSmall.copyWith(
+                                color: AppColors.textPrimary,
+                              ),
                               children: [
                                 const TextSpan(
                                   text: 'Referral từ: ',
-                                  style: TextStyle(color: AppColors.textSecondary),
+                                  style: TextStyle(
+                                    color: AppColors.textSecondary,
+                                  ),
                                 ),
                                 TextSpan(
                                   text: job.referralAlumniName,
-                                  style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.secondary),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.secondary,
+                                  ),
                                 ),
                                 TextSpan(
                                   text: ' (${job.referralAlumniRole})',
-                                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                                  style: const TextStyle(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 11,
+                                  ),
                                 ),
                               ],
                             ),
@@ -170,14 +205,21 @@ class JobCardWidget extends StatelessWidget {
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.accent,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: const Text(
                             'BẢO CHỨNG',
-                            style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ],
@@ -206,7 +248,9 @@ class JobCardWidget extends StatelessWidget {
                     ),
                     Text(
                       job.postedTime,
-                      style: AppTypography.labelSmall.copyWith(color: AppColors.textSecondary),
+                      style: AppTypography.labelSmall.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                   ],
                 ),

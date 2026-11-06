@@ -12,8 +12,8 @@ class AdminRepository {
   final AlumniApi api;
 
   Future<AdminDirectoryPage> loadUsers() async {
-    final page = await api.user.get(
-      '/api/v1/users',
+    final page = await api.admin.get(
+      '/api/v1/admin/users',
       query: {'pageNumber': '1', 'pageSize': '100'},
     );
     final items = page['items'] as List<dynamic>? ?? const [];
@@ -40,11 +40,13 @@ class AdminRepository {
     );
   }
 
-  Future<void> suspend(String userId, String reason) async =>
-      api.user.post('/api/v1/users/$userId/suspend', body: {'reason': reason});
+  Future<void> suspend(String userId, String reason) async => api.admin.post(
+    '/api/v1/admin/users/$userId/suspend',
+    body: {'reason': reason},
+  );
 
   Future<void> unsuspend(String userId) async =>
-      api.user.post('/api/v1/users/$userId/unsuspend');
+      api.admin.post('/api/v1/admin/users/$userId/unsuspend');
 
   Future<void> updateSystemRole(
     String userId,

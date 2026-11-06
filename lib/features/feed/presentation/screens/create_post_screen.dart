@@ -1,20 +1,25 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:alumni_connect/core/theme/app_colors.dart';
 import 'package:alumni_connect/core/theme/app_typography.dart';
 import 'package:alumni_connect/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:alumni_connect/features/feed/presentation/cubit/feed_cubit.dart';
+import 'package:alumni_connect/features/lab3/presentation/providers/firebase_service_providers.dart';
 
-class CreatePostScreen extends StatefulWidget {
+class CreatePostScreen extends ConsumerStatefulWidget {
   const CreatePostScreen({super.key, this.postId});
   final String? postId;
 
   @override
-  State<CreatePostScreen> createState() => _CreatePostScreenState();
+  ConsumerState<CreatePostScreen> createState() => _CreatePostScreenState();
 }
 
-class _CreatePostScreenState extends State<CreatePostScreen> {
+class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
 
@@ -62,7 +67,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   }
 
   bool _submitting = false;
+  bool _uploadingImage = false;
+  double _imageUploadProgress = 0;
   final List<String> _imageUrls = [];
+  final ImagePicker _imagePicker = ImagePicker();
   bool _loadingExisting = false;
   bool _didLoadExisting = false;
 
@@ -125,6 +133,104 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     controller.dispose();
     if (url == null || url.isEmpty || !mounted) return;
     setState(() => _imageUrls.add(url));
+  }
+
+  Future<void> _showImageOptions() async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Chọn ảnh từ điện thoại'),
+              onTap: () => Navigator.pop(context, 'device'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.link),
+              title: const Text('Thêm ảnh bằng URL'),
+              onTap: () => Navigator.pop(context, 'url'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted) return;
+    if (choice == 'device') await _pickAndUploadPostImage();
+    if (choice == 'url') await _addImageUrl();
+  }
+
+  Future<void> _pickAndUploadPostImage() async {
+    if (_uploadingImage) return;
+    try {
+      final picked = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 82,
+        maxWidth: 1800,
+      );
+      if (picked == null || !mounted) return;
+
+      final file = File(picked.path);
+      final size = await file.length();
+      if (!mounted) return;
+      if (size > 10 * 1024 * 1024) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ảnh phải nhỏ hơn 10 MB.')),
+        );
+        return;
+      }
+
+      final firebaseUser = ref.read(firebaseAuthServiceProvider)?.currentUser;
+      final storage = ref.read(firebaseStorageServiceProvider);
+      if (firebaseUser == null || storage == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Bạn cần đăng nhập Google để tải ảnh lên.'),
+          ),
+        );
+        return;
+      }
+
+      setState(() {
+        _uploadingImage = true;
+        _imageUploadProgress = 0;
+      });
+      String? downloadUrl;
+      final fileName =
+          '${DateTime.now().microsecondsSinceEpoch}_${picked.name}';
+      await for (final progress in storage.uploadPostImage(
+        uid: firebaseUser.uid,
+        file: file,
+        fileName: fileName,
+      )) {
+        downloadUrl = progress.downloadUrl ?? downloadUrl;
+        if (mounted) {
+          setState(() => _imageUploadProgress = progress.fraction);
+        }
+      }
+      if (downloadUrl == null) {
+        throw StateError('Firebase Storage không trả về URL ảnh.');
+      }
+      if (!mounted) return;
+      setState(() => _imageUrls.add(downloadUrl!));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Đã tải ảnh lên, ảnh sẽ được gửi cùng bài viết.'),
+        ),
+      );
+    } on Object catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Không tải được ảnh: $error')));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _uploadingImage = false;
+          _imageUploadProgress = 0;
+        });
+      }
+    }
   }
 
   Future<void> _submitPost() async {
@@ -417,33 +523,40 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                       const SizedBox(width: 6),
                       Text(
                         'Cơ sở FPT liên quan:',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: AppTypography.labelMedium.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(width: 10),
-                      DropdownButton<String>(
-                        value: _selectedCampus,
-                        isDense: true,
-                        underline: Container(
-                          height: 1,
-                          color: AppColors.secondary,
-                        ),
-                        items: _campuses.map((c) {
-                          return DropdownMenuItem(
-                            value: c,
-                            child: Text(
-                              c,
-                              style: AppTypography.bodyMedium.copyWith(
-                                color: AppColors.secondary,
+                      Expanded(
+                        child: DropdownButton<String>(
+                          value: _selectedCampus,
+                          isDense: true,
+                          isExpanded: true,
+                          underline: Container(
+                            height: 1,
+                            color: AppColors.secondary,
+                          ),
+                          items: _campuses.map((c) {
+                            return DropdownMenuItem(
+                              value: c,
+                              child: Text(
+                                c,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTypography.bodyMedium.copyWith(
+                                  color: AppColors.secondary,
+                                ),
                               ),
-                            ),
-                          );
-                        }).toList(),
-                        onChanged: (val) {
-                          if (val != null)
-                            setState(() => _selectedCampus = val);
-                        },
+                            );
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null)
+                              setState(() => _selectedCampus = val);
+                          },
+                        ),
                       ),
                     ],
                   ),
@@ -464,43 +577,91 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      DropdownButton<String>(
-                        value: _selectedMajor,
-                        items: const [
-                          DropdownMenuItem(value: 'All', child: Text('Tất cả')),
-                          DropdownMenuItem(
-                            value: 'SE',
-                            child: Text('Kỹ thuật phần mềm'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'AI',
-                            child: Text('Trí tuệ nhân tạo'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'IA',
-                            child: Text('An toàn thông tin'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'GD',
-                            child: Text('Thiết kế đồ họa'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'IB',
-                            child: Text('Kinh doanh quốc tế'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'MC',
-                            child: Text('Truyền thông đa phương tiện'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'MKT',
-                            child: Text('Marketing'),
-                          ),
-                        ],
-                        onChanged: (value) {
-                          if (value != null)
-                            setState(() => _selectedMajor = value);
-                        },
+                      Expanded(
+                        child: DropdownButton<String>(
+                          value: _selectedMajor,
+                          isExpanded: true,
+                          selectedItemBuilder: (context) => const [
+                            Text(
+                              'Tất cả',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              'Kỹ thuật phần mềm',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              'Trí tuệ nhân tạo',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              'An toàn thông tin',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              'Thiết kế đồ họa',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              'Kinh doanh quốc tế',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              'Truyền thông đa phương tiện',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              'Marketing',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'All',
+                              child: Text('Tất cả'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'SE',
+                              child: Text('Kỹ thuật phần mềm'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'AI',
+                              child: Text('Trí tuệ nhân tạo'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'IA',
+                              child: Text('An toàn thông tin'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'GD',
+                              child: Text('Thiết kế đồ họa'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'IB',
+                              child: Text('Kinh doanh quốc tế'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'MC',
+                              child: Text('Truyền thông đa phương tiện'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'MKT',
+                              child: Text('Marketing'),
+                            ),
+                          ],
+                          onChanged: (value) {
+                            if (value != null)
+                              setState(() => _selectedMajor = value);
+                          },
+                        ),
                       ),
                     ],
                   ),
@@ -569,6 +730,28 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                       );
                     }).toList(),
                   ),
+                  if (_imageUrls.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      'Ảnh đính kèm (${_imageUrls.length})',
+                      style: AppTypography.labelSmall.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    Wrap(
+                      spacing: 8,
+                      children: List.generate(
+                        _imageUrls.length,
+                        (index) => InputChip(
+                          avatar: const Icon(Icons.image_outlined, size: 18),
+                          label: Text('Ảnh ${index + 1}'),
+                          onDeleted: () => setState(() {
+                            _imageUrls.removeAt(index);
+                          }),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -594,7 +777,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     color: AppColors.textSecondary,
                   ),
                   tooltip: 'Đính kèm hình ảnh',
-                  onPressed: _addImageUrl,
+                  onPressed: _uploadingImage ? null : _showImageOptions,
                 ),
                 IconButton(
                   icon: const Icon(
@@ -629,11 +812,38 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                         '${_contentController.text} @Mentor ';
                   },
                 ),
+                if (_uploadingImage)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        value: _imageUploadProgress > 0
+                            ? _imageUploadProgress
+                            : null,
+                        strokeWidth: 2,
+                      ),
+                    ),
+                  ),
                 const Spacer(),
-                Text(
-                  'Đã lưu nháp',
-                  style: AppTypography.labelSmall.copyWith(
-                    color: AppColors.textSecondary,
+                FilledButton.icon(
+                  onPressed: _submitting || _uploadingImage
+                      ? null
+                      : _submitPost,
+                  icon: _submitting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.publish_outlined, size: 18),
+                  label: Text(
+                    _submitting
+                        ? 'Đang đăng'
+                        : widget.postId == null
+                        ? 'Đăng bài'
+                        : 'Lưu sửa',
                   ),
                 ),
               ],

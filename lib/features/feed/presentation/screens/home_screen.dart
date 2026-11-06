@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:alumni_connect/core/theme/app_colors.dart';
 import 'package:alumni_connect/features/feed/presentation/cubit/feed_cubit.dart';
 import 'package:alumni_connect/features/feed/presentation/widgets/stories_carousel_widget.dart';
 import 'package:alumni_connect/features/feed/presentation/widgets/post_card_widget.dart';
+import 'package:alumni_connect/features/lab3/presentation/viewmodels/remote_config_view_model.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
 
@@ -33,6 +36,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final remoteSettings =
+        ref.watch(remoteConfigViewModelProvider).asData?.value ??
+        RemoteConfigUiSettings.defaults;
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -60,13 +66,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 onChanged: (val) {
                   context.read<FeedCubit>().searchPosts(val);
                 },
+                onSubmitted: (_) =>
+                    context.read<FeedCubit>().trackSearchResults(),
               )
             : Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: AppColors.fptOrange.withOpacity(0.12),
+                      color: AppColors.fptOrange.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(
@@ -99,6 +107,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
         actions: [
+          if (kDebugMode)
+            IconButton(
+              icon: const Icon(Icons.sync, size: 20),
+              tooltip: 'Tải lại cấu hình Remote Config',
+              onPressed: () =>
+                  ref.read(remoteConfigViewModelProvider.notifier).refresh(),
+            ),
           IconButton(
             icon: Icon(_isSearching ? Icons.close : Icons.search, size: 22),
             tooltip: 'Tìm kiếm bài viết (FO-13)',
@@ -189,7 +204,9 @@ class _HomeScreenState extends State<HomeScreen> {
           }
 
           if (state is FeedLoaded) {
-            final displayPosts = state.filteredPosts;
+            final displayPosts = state.filteredPosts
+                .take(remoteSettings.maxItemsDisplay)
+                .toList();
 
             return RefreshIndicator(
               color: AppColors.fptOrange,
@@ -206,71 +223,73 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 8),
 
                     // 1.5 Community Events Banner
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: InkWell(
-                        onTap: () => context.push('/events'),
-                        borderRadius: BorderRadius.circular(14),
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 16),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 10,
-                          ),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFFF27024), Color(0xFFFF8C42)],
+                    if (remoteSettings.isPromoBannerEnabled)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: InkWell(
+                          onTap: () => context.push('/events'),
+                          borderRadius: BorderRadius.circular(14),
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 16),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
                             ),
-                            borderRadius: BorderRadius.circular(14),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFFF27024)
-                                    .withOpacity(0.28),
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFFF27024), Color(0xFFFF8C42)],
                               ),
-                            ],
-                          ),
-                          child: Row(
-                            children: const [
-                              Icon(
-                                Icons.campaign,
-                                color: Colors.white,
-                                size: 24,
-                              ),
-                              SizedBox(width: 10),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Sự kiện & Workshop FPTU mới nhất',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                    Text(
-                                      'Khám phá Tech Talk, Workshop CV & Họp mặt Alumni',
-                                      style: TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 11,
-                                      ),
-                                    ),
-                                  ],
+                              borderRadius: BorderRadius.circular(14),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFFF27024)
+                                      .withValues(alpha: 0.28),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
                                 ),
-                              ),
-                              Icon(
-                                Icons.arrow_forward_ios,
-                                color: Colors.white,
-                                size: 14,
-                              ),
-                            ],
+                              ],
+                            ),
+                            child: Row(
+                              children: const [
+                                Icon(
+                                  Icons.campaign,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                                SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Sự kiện & Workshop FPTU mới nhất',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Khám phá Tech Talk, Workshop CV & Họp mặt Alumni',
+                                        style: TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.arrow_forward_ios,
+                                  color: Colors.white,
+                                  size: 14,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
 
                     // 2. Quick Create Post Box
                     GestureDetector(
@@ -347,7 +366,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         scrollDirection: Axis.horizontal,
                         itemCount: categories.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 8),
+                        separatorBuilder: (_, _) => const SizedBox(width: 8),
                         itemBuilder: (context, index) {
                           final cat = categories[index];
                           final isActive = state.selectedCategory == cat;
@@ -507,7 +526,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         post: post,
                         onLike: () =>
                             context.read<FeedCubit>().toggleLike(post.id),
-                        onTap: () => context.push('/post-detail/${post.id}'),
+                        onTap: () {
+                          context.read<FeedCubit>().trackPostOpened();
+                          context.push('/post-detail/${post.id}');
+                        },
                       ),
                     ),
                 ],

@@ -1,10 +1,23 @@
 import 'package:alumni_connect/core/network/alumni_api.dart';
 import 'package:alumni_connect/features/auth/data/models/auth_model.dart';
+import 'package:alumni_connect/features/lab3/data/services/firebase_analytics_service.dart';
+import 'package:alumni_connect/features/lab3/data/services/firebase_auth_service.dart';
+import 'package:alumni_connect/features/lab3/data/services/firebase_crashlytics_service.dart';
+import 'package:alumni_connect/features/notifications/data/fcm_messaging_service.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthRepository {
-  AuthRepository(this.api);
+  AuthRepository(
+    this.api, {
+    this.firebaseAuthService,
+    this.analyticsService,
+    this.crashlyticsService,
+  });
+
   final AlumniApi api;
+  final FirebaseAuthService? firebaseAuthService;
+  final FirebaseAnalyticsService? analyticsService;
+  final FirebaseCrashlyticsService? crashlyticsService;
   static const _googleClientId = String.fromEnvironment('GOOGLE_CLIENT_ID');
   static const _googleServerClientId = String.fromEnvironment(
     'GOOGLE_SERVER_CLIENT_ID',
@@ -17,6 +30,37 @@ class AuthRepository {
         'Thiếu GOOGLE_CLIENT_ID hoặc GOOGLE_SERVER_CLIENT_ID để cấu hình Google Sign-In.',
       );
     }
+    final firebaseAuth = firebaseAuthService;
+    if (firebaseAuth == null) return await _loginWithGoogleBackendOnly();
+
+    final result = await firebaseAuth.signInWithGoogle(
+      clientId: _googleClientId.isEmpty ? null : _googleClientId,
+      serverClientId: _googleServerClientId.isEmpty
+          ? null
+          : _googleServerClientId,
+    );
+    try {
+      final firebaseUser = result.firebaseUser;
+      final data = await api.user.post(
+        '/api/v1/auth/google',
+        body: {
+          'idToken': result.googleIdToken,
+          'email': firebaseUser.email ?? '',
+          'fullName': firebaseUser.displayName ?? '',
+          'avatarUrl': firebaseUser.photoURL ?? '',
+        },
+      );
+      final authUser = await _saveSession(data);
+      await _recordLogin(AnalyticsLoginMethod.google);
+      return authUser;
+    } catch (_) {
+      await firebaseAuth.signOut();
+      await _setAnalyticsUserId(null);
+      rethrow;
+    }
+  }
+
+  Future<AuthUser> _loginWithGoogleBackendOnly() async {
     final signIn = GoogleSignIn.instance;
     _googleInitialization ??= signIn.initialize(
       clientId: _googleClientId.isEmpty ? null : _googleClientId,
@@ -39,15 +83,20 @@ class AuthRepository {
         'avatarUrl': account.photoUrl ?? '',
       },
     );
-    return _saveSession(data);
+    final user = await _saveSession(data);
+    await _recordLogin(AnalyticsLoginMethod.google);
+    return user;
   }
 
   Future<AuthUser> login(String email, String password) async {
+    await firebaseAuthService?.signOut();
     final data = await api.user.post(
       '/api/v1/auth/login',
       body: {'email': email, 'password': password},
     );
-    return _saveSession(data);
+    final user = await _saveSession(data);
+    await _recordLogin(AnalyticsLoginMethod.email);
+    return user;
   }
 
   Future<void> register({
@@ -110,7 +159,9 @@ class AuthRepository {
     }
     try {
       final data = await api.user.get('/api/v1/users/me');
-      return _toUser(data);
+      final user = _toUser(data);
+      await _syncAnalyticsIdentity(user);
+      return user;
     } catch (_) {
       final refresh = await api.tokens.refreshToken;
       if (refresh == null || refresh.isEmpty) rethrow;
@@ -122,11 +173,18 @@ class AuthRepository {
         access: renewed['accessToken'] as String,
         refresh: renewed['refreshToken'] as String,
       );
-      return _toUser(renewed['user'] as Map<String, dynamic>);
+      final user = _toUser(renewed['user'] as Map<String, dynamic>);
+      await _syncAnalyticsIdentity(user);
+      return user;
     }
   }
 
   Future<void> logout() async {
+    await _analyticsCall((analytics) => analytics.logLogout());
+    await _setAnalyticsUserId(null);
+    await _crashlyticsCall(
+      (crashlytics) => crashlytics.setUserIdentifier(null),
+    );
     final refresh = await api.tokens.refreshToken;
     try {
       await api.user.post(
@@ -134,7 +192,15 @@ class AuthRepository {
         body: {'refreshToken': refresh},
       );
     } finally {
-      await api.tokens.clear();
+      try {
+        await api.tokens.clear();
+      } finally {
+        try {
+          await firebaseAuthService?.signOut();
+        } finally {
+          await FcmMessagingService.instance.clearHistory();
+        }
+      }
     }
   }
 
@@ -144,7 +210,58 @@ class AuthRepository {
       access: data['accessToken'] as String,
       refresh: data['refreshToken'] as String,
     );
+    await FcmMessagingService.instance.setUserScope(user.id);
+    await _syncAnalyticsIdentity(user);
     return user;
+  }
+
+  Future<void> _recordLogin(AnalyticsLoginMethod method) async {
+    await _analyticsCall((analytics) => analytics.logLogin(method));
+    await _setCrashlyticsLoginMethod(method.name);
+  }
+
+  Future<void> _syncAnalyticsIdentity(AuthUser user) async {
+    final firebaseUser = firebaseAuthService?.currentUser;
+    final isMatchingFirebaseUser =
+        firebaseUser?.email?.trim().toLowerCase() ==
+        user.email.trim().toLowerCase();
+    final userId = isMatchingFirebaseUser ? firebaseUser?.uid : null;
+    await _setAnalyticsUserId(userId);
+    final crashlyticsUserId = isMatchingFirebaseUser ? firebaseUser?.uid : null;
+    await _crashlyticsCall(
+      (crashlytics) => crashlytics.setUserIdentifier(crashlyticsUserId),
+    );
+  }
+
+  Future<void> _setCrashlyticsLoginMethod(String method) => _crashlyticsCall(
+    (crashlytics) => crashlytics.setCustomKey('auth_method', method),
+  );
+
+  Future<void> _crashlyticsCall(
+    Future<void> Function(FirebaseCrashlyticsService crashlytics) call,
+  ) async {
+    final crashlytics = crashlyticsService;
+    if (crashlytics == null) return;
+    try {
+      await call(crashlytics);
+    } on Object {
+      // Diagnostics must not change the outcome of an app operation.
+    }
+  }
+
+  Future<void> _setAnalyticsUserId(String? userId) =>
+      _analyticsCall((analytics) => analytics.setUserId(userId));
+
+  Future<void> _analyticsCall(
+    Future<void> Function(FirebaseAnalyticsService analytics) call,
+  ) async {
+    final analytics = analyticsService;
+    if (analytics == null) return;
+    try {
+      await call(analytics);
+    } on Object {
+      // Analytics failure must never block sign-in, sign-out, or app actions.
+    }
   }
 
   AuthUser _toUser(Map<String, dynamic> json) => AuthUser(

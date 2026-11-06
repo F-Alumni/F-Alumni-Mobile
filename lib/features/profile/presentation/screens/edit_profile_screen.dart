@@ -1,19 +1,26 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:alumni_connect/core/theme/app_colors.dart';
 import 'package:alumni_connect/core/theme/app_typography.dart';
 import 'package:alumni_connect/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:alumni_connect/features/profile/presentation/cubit/profile_cubit.dart';
+import 'package:alumni_connect/features/lab3/presentation/viewmodels/avatar_upload_view_model.dart';
+import 'package:alumni_connect/features/lab3/presentation/viewmodels/crashlytics_demo_view_model.dart';
 
-class EditProfileScreen extends StatefulWidget {
+class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
 
   @override
-  State<EditProfileScreen> createState() => _EditProfileScreenState();
+  ConsumerState<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
-class _EditProfileScreenState extends State<EditProfileScreen> {
+class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   late TextEditingController _nameController;
   late TextEditingController _bioController;
   late TextEditingController _majorController;
@@ -53,7 +60,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _avatarController = TextEditingController(text: profile.avatarUrl);
     _newSkillController = TextEditingController();
 
-    _selectedCampus = profile.campus;
+    _selectedCampus = switch (profile.campus.trim().toUpperCase()) {
+      'HCM' || 'FU-HCM' || 'TP.HCM' || 'TP. HỒ CHÍ MINH' => 'FPT TP.HCM',
+      'DN' || 'FU-DN' || 'ĐÀ NẴNG' => 'FPT Đà Nẵng',
+      'HL' || 'FU-HL' || 'HÒA LẠC' => 'FPT Hòa Lạc',
+      'QN' || 'FU-QN' || 'QUY NHƠN' => 'FPT Quy Nhơn',
+      'CT' || 'FU-CT' || 'CẦN THƠ' => 'FPT Cần Thơ',
+      _ =>
+        _campusOptions.contains(profile.campus)
+            ? profile.campus
+            : _campusOptions.first,
+    };
     _isVerified = profile.isVerified;
     _isPublicToRecruiters = profile.isPublicToRecruiters;
     _showEmailPublicly = profile.showEmailPublicly;
@@ -150,6 +167,26 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     });
   }
 
+  Future<void> _uploadAvatar(ImageSource source) async {
+    final url = await ref
+        .read(avatarUploadViewModelProvider.notifier)
+        .pickAndUploadAvatar(source: source);
+    if (!mounted) return;
+    if (url != null) {
+      setState(() => _avatarController.text = url);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ảnh đã tải lên Firebase Storage.')),
+      );
+      return;
+    }
+
+    final error = ref.read(avatarUploadViewModelProvider).error;
+    if (error != null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error)));
+    }
+  }
+
   void _showLogoutDialog() {
     showDialog(
       context: context,
@@ -182,6 +219,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final avatarUpload = ref.watch(avatarUploadViewModelProvider);
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -257,6 +295,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
             ),
             const SizedBox(height: 6),
+            if (avatarUpload.isUploading) ...[
+              LinearProgressIndicator(value: avatarUpload.progress),
+              const SizedBox(height: 4),
+              Center(child: Text('${(avatarUpload.progress * 100).round()}%')),
+            ],
             Center(
               child: TextButton.icon(
                 onPressed: _showAvatarPickerModal,
@@ -274,7 +317,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.accent.withOpacity(0.12),
+                  color: AppColors.accent.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Row(
@@ -317,7 +360,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
             // Campus Dropdown
             DropdownButtonFormField<String>(
-              value: _selectedCampus,
+              initialValue: _selectedCampus,
               decoration: InputDecoration(
                 labelText: 'Cơ sở Đại học FPT',
                 prefixIcon: const Icon(
@@ -443,7 +486,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       style: TextStyle(fontSize: 12),
                     ),
                     value: _isPublicToRecruiters,
-                    activeColor: AppColors.primary,
+                    activeThumbColor: AppColors.primary,
                     onChanged: (val) =>
                         setState(() => _isPublicToRecruiters = val),
                   ),
@@ -454,7 +497,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       style: TextStyle(fontWeight: FontWeight.w600),
                     ),
                     value: _showCalendarPublicly,
-                    activeColor: AppColors.primary,
+                    activeThumbColor: AppColors.primary,
                     onChanged: (val) =>
                         setState(() => _showCalendarPublicly = val),
                   ),
@@ -469,7 +512,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       style: TextStyle(fontSize: 12),
                     ),
                     value: _showEmailPublicly,
-                    activeColor: AppColors.primary,
+                    activeThumbColor: AppColors.primary,
                     onChanged: (val) =>
                         setState(() => _showEmailPublicly = val),
                   ),
@@ -484,7 +527,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       style: TextStyle(fontSize: 12),
                     ),
                     value: _showPhonePublicly,
-                    activeColor: AppColors.primary,
+                    activeThumbColor: AppColors.primary,
                     onChanged: (val) =>
                         setState(() => _showPhonePublicly = val),
                   ),
@@ -499,7 +542,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       style: TextStyle(fontSize: 12),
                     ),
                     value: false,
-                    activeColor: AppColors.primary,
+                    activeThumbColor: AppColors.primary,
                     onChanged: null,
                   ),
                 ],
@@ -564,6 +607,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
             ),
             const SizedBox(height: 24),
+
+            if (kDebugMode) ...[
+              _buildSectionHeader('Lab 3 Debug Area'),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () => ref
+                    .read(crashlyticsDemoViewModelProvider.notifier)
+                    .triggerTestCrash(),
+                icon: const Icon(Icons.bug_report_outlined),
+                label: const Text('Gửi test crash tới Crashlytics'),
+              ),
+              const SizedBox(height: 24),
+            ],
 
             // Logout Button (US-08)
             SizedBox(
@@ -634,7 +690,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
+                    color: AppColors.primary.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -643,43 +699,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ),
                 ),
                 title: const Text('Chọn ảnh từ thư viện thiết bị'),
-                subtitle: const Text('BE hiện chưa có API tải ảnh lên'),
+                subtitle: const Text('Tải ảnh lên Firebase Storage'),
                 onTap: () {
                   Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Chưa thể tải ảnh từ thiết bị lên. Hiện có thể lưu ảnh bằng URL.',
-                      ),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                },
-              ),
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.secondary.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.camera_alt_outlined,
-                    color: AppColors.secondary,
-                  ),
-                ),
-                title: const Text('Chụp ảnh mới bằng Camera'),
-                subtitle: const Text('BE hiện chưa có API tải ảnh lên'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Chưa thể tải ảnh từ camera lên. Hiện có thể lưu ảnh bằng URL.',
-                      ),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
+                  unawaited(_uploadAvatar(ImageSource.gallery));
                 },
               ),
             ],
@@ -698,7 +721,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: hasCalendar
-              ? AppColors.accent.withOpacity(0.5)
+              ? AppColors.accent.withValues(alpha: 0.5)
               : AppColors.border,
           width: hasCalendar ? 1.4 : 1.0,
         ),
@@ -711,7 +734,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
@@ -754,7 +777,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: hasCalendar
-                      ? AppColors.accent.withOpacity(0.12)
+                      ? AppColors.accent.withValues(alpha: 0.12)
                       : AppColors.surfaceVariant,
                   borderRadius: BorderRadius.circular(12),
                 ),

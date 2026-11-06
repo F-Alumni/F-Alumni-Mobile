@@ -5,6 +5,7 @@ import 'package:alumni_connect/core/theme/app_colors.dart';
 import 'package:alumni_connect/core/theme/app_typography.dart';
 import 'package:alumni_connect/features/profile/presentation/cubit/profile_cubit.dart';
 import 'package:alumni_connect/features/feed/presentation/cubit/feed_cubit.dart';
+import 'package:alumni_connect/features/feed/data/models/feed_models.dart';
 import 'package:alumni_connect/features/feed/presentation/widgets/post_card_widget.dart';
 
 class UserProfileScreen extends StatefulWidget {
@@ -17,13 +18,24 @@ class UserProfileScreen extends StatefulWidget {
 class _UserProfileScreenState extends State<UserProfileScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  Future<List<PostItem>>? _myPostsFuture;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) context.read<ProfileCubit>().loadProfile();
+      if (!mounted) return;
+      context.read<ProfileCubit>().loadProfile();
+      _loadMyPosts();
+    });
+  }
+
+  void _loadMyPosts() {
+    setState(() {
+      _myPostsFuture = context.read<FeedCubit>().loadMyPosts().then(
+        (page) => page.items,
+      );
     });
   }
 
@@ -307,54 +319,55 @@ class _UserProfileScreenState extends State<UserProfileScreen>
               controller: _tabController,
               children: [
                 // Tab 1: Bài viết của tôi (FO-10)
-                BlocBuilder<FeedCubit, FeedState>(
-                  builder: (context, feedState) {
-                    if (feedState is FeedLoaded) {
-                      // Filter posts written by current user An or student posts
-                      final myPosts = feedState.posts
-                          .where((p) => p.authorName == profile.name)
-                          .toList();
-                      if (myPosts.isEmpty) {
-                        return Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(32),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(
-                                  Icons.article_outlined,
-                                  size: 48,
-                                  color: AppColors.textMuted,
-                                ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  'Backend hiện chưa có API để tải bài viết cá nhân.',
-                                  style: AppTypography.titleSmall.copyWith(
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                              ],
-                            ),
+                FutureBuilder<List<PostItem>>(
+                  future: _myPostsFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Không tải được bài viết: ${snapshot.error}',
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 12),
+                              ElevatedButton(
+                                onPressed: _loadMyPosts,
+                                child: const Text('Thử lại'),
+                              ),
+                            ],
                           ),
-                        );
-                      }
-                      return ListView.builder(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        itemCount: myPosts.length,
-                        itemBuilder: (context, idx) {
-                          final post = myPosts[idx];
-                          return PostCardWidget(
-                            post: post,
-                            onLike: () =>
-                                context.read<FeedCubit>().toggleLike(post.id),
-                            onTap: () =>
-                                context.push('/post-detail/${post.id}'),
-                          );
-                        },
+                        ),
                       );
                     }
-                    return const Center(child: CircularProgressIndicator());
+                    final myPosts = snapshot.data ?? const <PostItem>[];
+                    if (myPosts.isEmpty) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(32),
+                          child: Text('Bạn chưa có bài viết nào.'),
+                        ),
+                      );
+                    }
+                    return ListView.builder(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      itemCount: myPosts.length,
+                      itemBuilder: (context, idx) {
+                        final post = myPosts[idx];
+                        return PostCardWidget(
+                          post: post,
+                          onLike: () =>
+                              context.read<FeedCubit>().toggleLike(post.id),
+                          onTap: () => context.push('/post-detail/${post.id}'),
+                        );
+                      },
+                    );
                   },
                 ),
 

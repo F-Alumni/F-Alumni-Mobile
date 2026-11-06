@@ -1,20 +1,25 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:alumni_connect/features/notifications/data/fcm_messaging_service.dart';
 import 'package:alumni_connect/core/theme/app_colors.dart';
 import 'package:alumni_connect/core/theme/app_typography.dart';
 import 'package:alumni_connect/features/notifications/data/models/notification_model.dart';
+import 'package:alumni_connect/features/lab3/data/services/firebase_analytics_service.dart';
+import 'package:alumni_connect/features/lab3/presentation/providers/firebase_service_providers.dart';
 
-class NotificationScreen extends StatefulWidget {
+class NotificationScreen extends ConsumerStatefulWidget {
   const NotificationScreen({super.key});
 
   @override
-  State<NotificationScreen> createState() => _NotificationScreenState();
+  ConsumerState<NotificationScreen> createState() => _NotificationScreenState();
 }
 
-class _NotificationScreenState extends State<NotificationScreen> {
+class _NotificationScreenState extends ConsumerState<NotificationScreen> {
   int _selectedFilterIndex = 0;
 
   final List<String> _filters = [
@@ -38,7 +43,28 @@ class _NotificationScreenState extends State<NotificationScreen> {
       if (!mounted) return;
       setState(() => _notifications.insert(0, item));
     });
-    unawaited(messaging.requestPermission());
+    unawaited(_requestNotificationPermission());
+  }
+
+  Future<void> _requestNotificationPermission() async {
+    try {
+      final granted = await FcmMessagingService.instance.requestPermission();
+      if (!mounted || granted != false) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Quyền thông báo đang tắt. Bạn có thể bật lại trong cài đặt thiết bị.',
+          ),
+        ),
+      );
+    } on Object {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Không thể yêu cầu quyền thông báo lúc này.'),
+        ),
+      );
+    }
   }
 
   @override
@@ -81,10 +107,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 
   void _markAllAsRead() {
+    FcmMessagingService.instance.markAllAsRead();
     setState(() {
-      _notifications = _notifications
-          .map((n) => n.copyWith(isRead: true))
-          .toList();
+      _notifications = FcmMessagingService.instance.notifications.toList();
     });
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -96,8 +121,20 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 
   void _handleAction(NotificationItem item, String action) {
-    final destination = item.actionUrl;
-    if (destination != null && destination.startsWith('/')) {
+    final analytics = ref.read(firebaseAnalyticsServiceProvider);
+    if (analytics != null) {
+      unawaited(
+        analytics.logNotificationOpen(switch (item.type) {
+          NotificationType.chat => AnalyticsNotificationType.chat,
+          NotificationType.mentorship => AnalyticsNotificationType.mentorship,
+          NotificationType.social => AnalyticsNotificationType.social,
+          NotificationType.job => AnalyticsNotificationType.job,
+          NotificationType.system => AnalyticsNotificationType.system,
+        }),
+      );
+    }
+    final destination = FcmMessagingService.destinationFor(item);
+    if (destination != '/notifications') {
       context.push(destination);
       return;
     }
@@ -106,6 +143,32 @@ class _NotificationScreenState extends State<NotificationScreen> {
       SnackBar(
         content: Text('Thông báo “$action” chưa có liên kết đích từ backend.'),
         behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _showFcmToken() {
+    final token = FcmMessagingService.instance.latestFcmToken;
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('FCM registration token'),
+        content: SelectableText(token ?? 'Token chưa sẵn sàng.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Đóng'),
+          ),
+          if (token != null)
+            TextButton.icon(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: token));
+                if (dialogContext.mounted) Navigator.pop(dialogContext);
+              },
+              icon: const Icon(Icons.copy),
+              label: const Text('Sao chép'),
+            ),
+        ],
       ),
     );
   }
@@ -166,6 +229,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
           ],
         ),
         actions: [
+          if (kDebugMode)
+            IconButton(
+              onPressed: _showFcmToken,
+              icon: const Icon(Icons.key_outlined),
+              tooltip: 'Xem FCM token (debug)',
+            ),
           TextButton.icon(
             onPressed: _unreadCount > 0 ? _markAllAsRead : null,
             icon: const Icon(Icons.done_all, size: 16),
@@ -248,7 +317,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                         Icon(
                           Icons.notifications_off_outlined,
                           size: 64,
-                          color: AppColors.textMuted.withOpacity(0.5),
+                          color: AppColors.textMuted.withValues(alpha: 0.5),
                         ),
                         const SizedBox(height: 12),
                         const Text(
@@ -335,19 +404,19 @@ class _NotificationScreenState extends State<NotificationScreen> {
       decoration: BoxDecoration(
         color: isUnread
             ? AppColors.surface
-            : AppColors.surface.withOpacity(0.85),
+            : AppColors.surface.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isUnread
-              ? AppColors.fptOrange.withOpacity(0.35)
+              ? AppColors.fptOrange.withValues(alpha: 0.35)
               : AppColors.border,
           width: isUnread ? 1.2 : 1.0,
         ),
         boxShadow: [
           BoxShadow(
             color: isUnread
-                ? AppColors.fptOrange.withOpacity(0.06)
-                : Colors.black.withOpacity(0.02),
+                ? AppColors.fptOrange.withValues(alpha: 0.06)
+                : Colors.black.withValues(alpha: 0.02),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -364,7 +433,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 children: [
                   CircleAvatar(
                     radius: 20,
-                    backgroundColor: typeColor.withOpacity(0.12),
+                    backgroundColor: typeColor.withValues(alpha: 0.12),
                     backgroundImage: item.actorAvatar != null
                         ? NetworkImage(item.actorAvatar!)
                         : null,
@@ -403,7 +472,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: typeColor.withOpacity(0.1),
+                              color: typeColor.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(

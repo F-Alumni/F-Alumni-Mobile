@@ -27,6 +27,11 @@ class AlumniApi {
       tokens: this.tokens,
       refreshSession: _refreshSession,
     );
+    admin = ApiClient(
+      baseUrl: ApiConfig.adminBaseUrl,
+      tokens: this.tokens,
+      refreshSession: _refreshSession,
+    );
   }
 
   final TokenStorage tokens;
@@ -34,6 +39,7 @@ class AlumniApi {
   late final ApiClient chat;
   late final ApiClient ai;
   late final ApiClient forum;
+  late final ApiClient admin;
 
   Future<bool>? _refreshing;
 

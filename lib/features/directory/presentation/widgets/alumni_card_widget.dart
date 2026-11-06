@@ -5,8 +5,9 @@ import 'package:alumni_connect/features/directory/data/models/alumni_model.dart'
 
 class AlumniCardWidget extends StatelessWidget {
   final AlumniModel alumni;
+  final VoidCallback? onViewProfile;
 
-  const AlumniCardWidget({super.key, required this.alumni});
+  const AlumniCardWidget({super.key, required this.alumni, this.onViewProfile});
 
   @override
   Widget build(BuildContext context) {
@@ -214,6 +215,7 @@ class AlumniCardWidget extends StatelessWidget {
               Expanded(
                 child: OutlinedButton(
                   onPressed: () {
+                    onViewProfile?.call();
                     context.push('/alumni-profile/${alumni.id}');
                   },
                   style: OutlinedButton.styleFrom(

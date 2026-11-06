@@ -48,4 +48,44 @@ class NotificationItem {
       evidenceThumbnail: evidenceThumbnail,
     );
   }
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'title': title,
+    'body': body,
+    'type': type.name,
+    'createdAt': createdAt.toIso8601String(),
+    'isRead': isRead,
+    'actorName': actorName,
+    'actorAvatar': actorAvatar,
+    'actionUrl': actionUrl,
+    'actionLabel': actionLabel,
+    'secondaryActionLabel': secondaryActionLabel,
+    'tag': tag,
+    'evidenceThumbnail': evidenceThumbnail,
+  };
+
+  factory NotificationItem.fromJson(Map<String, dynamic> json) {
+    final typeName = json['type'] as String?;
+    return NotificationItem(
+      id: json['id'] as String? ?? '',
+      title: json['title'] as String? ?? '',
+      body: json['body'] as String? ?? '',
+      type: NotificationType.values.firstWhere(
+        (value) => value.name == typeName,
+        orElse: () => NotificationType.system,
+      ),
+      createdAt:
+          DateTime.tryParse(json['createdAt'] as String? ?? '') ??
+          DateTime.now(),
+      isRead: json['isRead'] as bool? ?? false,
+      actorName: json['actorName'] as String?,
+      actorAvatar: json['actorAvatar'] as String?,
+      actionUrl: json['actionUrl'] as String?,
+      actionLabel: json['actionLabel'] as String?,
+      secondaryActionLabel: json['secondaryActionLabel'] as String?,
+      tag: json['tag'] as String?,
+      evidenceThumbnail: json['evidenceThumbnail'] as String?,
+    );
+  }
 }

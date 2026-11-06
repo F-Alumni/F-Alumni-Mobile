@@ -90,6 +90,8 @@ class _DirectoryContent extends StatelessWidget {
                     child: TextField(
                       onChanged: (val) =>
                           context.read<DirectoryCubit>().search(val),
+                      onSubmitted: (_) =>
+                          context.read<DirectoryCubit>().trackSearchResults(),
                       decoration: InputDecoration(
                         hintText: 'Tìm theo tên, vị trí, công ty, kỹ năng...',
                         hintStyle: const TextStyle(
@@ -239,7 +241,14 @@ class _DirectoryContent extends StatelessWidget {
                   ),
 
                   // 4. Alumni Card List
-                  ...state.alumni.map((a) => AlumniCardWidget(alumni: a)),
+                  ...state.alumni.map(
+                    (a) => AlumniCardWidget(
+                      alumni: a,
+                      onViewProfile: context
+                          .read<DirectoryCubit>()
+                          .trackAlumniOpened,
+                    ),
+                  ),
                 ],
               ),
             );

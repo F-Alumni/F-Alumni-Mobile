@@ -52,6 +52,8 @@ class _JobsScreenState extends State<JobsScreen> {
             child: TextField(
               controller: _searchController,
               onChanged: (query) => context.read<JobsCubit>().searchJobs(query),
+              onSubmitted: (_) =>
+                  context.read<JobsCubit>().trackSearchResults(),
               decoration: InputDecoration(
                 hintText: 'Tìm theo vị trí, công ty, kỹ năng...',
                 hintStyle: AppTypography.bodyMedium.copyWith(
@@ -95,7 +97,7 @@ class _JobsScreenState extends State<JobsScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   scrollDirection: Axis.horizontal,
                   itemCount: _filters.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  separatorBuilder: (_, _) => const SizedBox(width: 8),
                   itemBuilder: (context, index) {
                     final filter = _filters[index];
                     final isSelected = filter == activeFilter;
@@ -141,6 +143,26 @@ class _JobsScreenState extends State<JobsScreen> {
                   );
                 }
 
+                if (state is JobsFailure) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(state.message, textAlign: TextAlign.center),
+                          const SizedBox(height: 12),
+                          ElevatedButton(
+                            onPressed: () =>
+                                context.read<JobsCubit>().loadJobs(),
+                            child: const Text('Tải lại'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
                 if (state is! JobsLoaded) {
                   return const SizedBox.shrink();
                 }
@@ -159,7 +181,7 @@ class _JobsScreenState extends State<JobsScreen> {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          'Backend hiện chưa có API danh sách việc làm.',
+                          'Chưa có bài đăng tuyển dụng phù hợp.',
                           style: AppTypography.bodyMedium.copyWith(
                             color: AppColors.textSecondary,
                           ),
@@ -176,7 +198,10 @@ class _JobsScreenState extends State<JobsScreen> {
                     final job = jobs[index];
                     return JobCardWidget(
                       job: job,
-                      onTap: () => context.push('/job-detail/${job.id}'),
+                      onTap: () {
+                        context.read<JobsCubit>().trackJobOpened();
+                        context.push('/job-detail/${job.id}');
+                      },
                       onSave: () =>
                           context.read<JobsCubit>().toggleSaveJob(job.id),
                     );

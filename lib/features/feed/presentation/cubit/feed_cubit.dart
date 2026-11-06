@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:alumni_connect/features/feed/data/models/feed_models.dart';
 import 'package:alumni_connect/features/feed/data/feed_repository.dart';
+import 'package:alumni_connect/features/lab3/data/services/firebase_analytics_service.dart';
 
 // States
 abstract class FeedState {}
@@ -59,14 +62,34 @@ class FeedLoaded extends FeedState {
 
 // Cubit
 class FeedCubit extends Cubit<FeedState> {
-  FeedCubit(this.repository) : super(FeedInitial());
+  FeedCubit(this.repository, {this.analyticsService}) : super(FeedInitial());
   final FeedRepository repository;
+  final FirebaseAnalyticsService? analyticsService;
   String? get selectedCampus => _campus;
   String _search = '';
   String _category = 'Tất cả';
   String? _campus;
   String _sort = 'latest';
   bool? _answered;
+
+  void trackPostOpened() {
+    final analytics = analyticsService;
+    if (analytics == null) return;
+    unawaited(analytics.logSelectContent(AnalyticsContentType.post));
+    unawaited(analytics.logViewItem(AnalyticsContentType.post));
+  }
+
+  void trackSearchResults() {
+    if (_search.trim().isEmpty) return;
+    final analytics = analyticsService;
+    if (analytics == null) return;
+    final count = state is FeedLoaded
+        ? (state as FeedLoaded).filteredPosts.length
+        : null;
+    unawaited(
+      analytics.logSearch(AnalyticsSearchType.feed, resultCount: count),
+    );
+  }
 
   Future<void> loadFeed() async {
     emit(FeedLoading());
@@ -91,6 +114,8 @@ class FeedCubit extends Cubit<FeedState> {
       emit(FeedFailure(e.toString()));
     }
   }
+
+  Future<FeedPage> loadMyPosts() => repository.getMyPosts();
 
   void selectCategory(String category) {
     if (state is FeedLoaded) {
@@ -141,7 +166,7 @@ class FeedCubit extends Cubit<FeedState> {
       try {
         final actual = await repository.toggleLike(postId);
         final latest = state;
-        if (latest is FeedLoaded)
+        if (latest is FeedLoaded) {
           emit(
             latest.copyWith(
               posts: latest.posts
@@ -149,6 +174,7 @@ class FeedCubit extends Cubit<FeedState> {
                   .toList(),
             ),
           );
+        }
       } catch (_) {
         emit(currentState);
       }
