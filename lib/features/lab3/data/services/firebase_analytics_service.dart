@@ -31,8 +31,14 @@ class FirebaseAnalyticsService {
           'result_count': resultCount,
       });
 
-  Future<void> logAvatarUploadComplete() =>
+    Future<void> logAvatarUploadComplete() =>
       _logEvent('avatar_upload_complete', const {'file_type': 'image'});
+
+  Future<void> logExportFile({required String fileType, String? fileName}) =>
+      _logEvent('export_file', {
+        'file_type': fileType,
+        if (fileName != null) 'file_name': fileName,
+      });
 
   Future<void> logNotificationOpen(AnalyticsNotificationType type) =>
       _logEvent('notification_open', {'notification_type': type.name});
