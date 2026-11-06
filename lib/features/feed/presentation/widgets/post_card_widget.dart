@@ -311,7 +311,7 @@ class PostCardWidget extends StatelessWidget {
                       ),
                     ),
                     TextButton.icon(
-                      onPressed: () {},
+                      onPressed: null,
                       icon: const Icon(Icons.share_outlined, size: 18, color: AppColors.textSecondary),
                       label: Text(
                         '${post.shares}',

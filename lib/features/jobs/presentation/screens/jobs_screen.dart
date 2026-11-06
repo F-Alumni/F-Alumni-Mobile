@@ -43,13 +43,6 @@ class _JobsScreenState extends State<JobsScreen> {
             color: AppColors.textPrimary,
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.bookmark_outline, color: AppColors.textPrimary),
-            tooltip: 'Việc làm đã lưu',
-            onPressed: () {},
-          ),
-        ],
       ),
       body: Column(
         children: [
@@ -59,13 +52,23 @@ class _JobsScreenState extends State<JobsScreen> {
             child: TextField(
               controller: _searchController,
               onChanged: (query) => context.read<JobsCubit>().searchJobs(query),
+              onSubmitted: (_) =>
+                  context.read<JobsCubit>().trackSearchResults(),
               decoration: InputDecoration(
                 hintText: 'Tìm theo vị trí, công ty, kỹ năng...',
-                hintStyle: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
-                prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
+                hintStyle: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  color: AppColors.textSecondary,
+                ),
                 filled: true,
                 fillColor: AppColors.surface,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                   borderSide: const BorderSide(color: AppColors.border),
@@ -85,32 +88,41 @@ class _JobsScreenState extends State<JobsScreen> {
           // Horizontal Filter Chips
           BlocBuilder<JobsCubit, JobsState>(
             builder: (context, state) {
-              final activeFilter = (state is JobsLoaded) ? state.selectedFilter : 'Tất cả';
+              final activeFilter = (state is JobsLoaded)
+                  ? state.selectedFilter
+                  : 'Tất cả';
               return SizedBox(
                 height: 38,
                 child: ListView.separated(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   scrollDirection: Axis.horizontal,
                   itemCount: _filters.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  separatorBuilder: (_, _) => const SizedBox(width: 8),
                   itemBuilder: (context, index) {
                     final filter = _filters[index];
                     final isSelected = filter == activeFilter;
                     return ChoiceChip(
                       label: Text(filter),
                       selected: isSelected,
-                      onSelected: (_) => context.read<JobsCubit>().filterJobs(filter),
+                      onSelected: (_) =>
+                          context.read<JobsCubit>().filterJobs(filter),
                       selectedColor: AppColors.primary,
                       backgroundColor: AppColors.surface,
                       labelStyle: TextStyle(
-                        color: isSelected ? Colors.white : AppColors.textPrimary,
+                        color: isSelected
+                            ? Colors.white
+                            : AppColors.textPrimary,
                         fontSize: 12,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                         side: BorderSide(
-                          color: isSelected ? AppColors.primary : AppColors.border,
+                          color: isSelected
+                              ? AppColors.primary
+                              : AppColors.border,
                         ),
                       ),
                     );
@@ -126,7 +138,29 @@ class _JobsScreenState extends State<JobsScreen> {
             child: BlocBuilder<JobsCubit, JobsState>(
               builder: (context, state) {
                 if (state is JobsLoading) {
-                  return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+                  return const Center(
+                    child: CircularProgressIndicator(color: AppColors.primary),
+                  );
+                }
+
+                if (state is JobsFailure) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(state.message, textAlign: TextAlign.center),
+                          const SizedBox(height: 12),
+                          ElevatedButton(
+                            onPressed: () =>
+                                context.read<JobsCubit>().loadJobs(),
+                            child: const Text('Tải lại'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
                 }
 
                 if (state is! JobsLoaded) {
@@ -140,11 +174,17 @@ class _JobsScreenState extends State<JobsScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.work_off_outlined, size: 48, color: AppColors.textSecondary),
+                        const Icon(
+                          Icons.work_off_outlined,
+                          size: 48,
+                          color: AppColors.textSecondary,
+                        ),
                         const SizedBox(height: 12),
                         Text(
-                          'Không tìm thấy công việc phù hợp',
-                          style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
+                          'Chưa có bài đăng tuyển dụng phù hợp.',
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                       ],
                     ),
@@ -158,8 +198,12 @@ class _JobsScreenState extends State<JobsScreen> {
                     final job = jobs[index];
                     return JobCardWidget(
                       job: job,
-                      onTap: () => context.push('/job-detail/${job.id}'),
-                      onSave: () => context.read<JobsCubit>().toggleSaveJob(job.id),
+                      onTap: () {
+                        context.read<JobsCubit>().trackJobOpened();
+                        context.push('/job-detail/${job.id}');
+                      },
+                      onSave: () =>
+                          context.read<JobsCubit>().toggleSaveJob(job.id),
                     );
                   },
                 );

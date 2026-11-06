@@ -5,8 +5,9 @@ import 'package:alumni_connect/features/directory/data/models/alumni_model.dart'
 
 class AlumniCardWidget extends StatelessWidget {
   final AlumniModel alumni;
+  final VoidCallback? onViewProfile;
 
-  const AlumniCardWidget({super.key, required this.alumni});
+  const AlumniCardWidget({super.key, required this.alumni, this.onViewProfile});
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +36,12 @@ class AlumniCardWidget extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 26,
-                    backgroundImage: NetworkImage(alumni.avatarUrl),
+                    backgroundImage: alumni.avatarUrl.isEmpty
+                        ? null
+                        : NetworkImage(alumni.avatarUrl),
+                    child: alumni.avatarUrl.isEmpty
+                        ? const Icon(Icons.person_outline)
+                        : null,
                   ),
                   if (alumni.isAvailableForMentoring)
                     Positioned(
@@ -73,7 +79,11 @@ class AlumniCardWidget extends StatelessWidget {
                         ),
                         if (alumni.isVerified) ...[
                           const SizedBox(width: 4),
-                          const Icon(Icons.verified, size: 16, color: AppColors.fptGreen),
+                          const Icon(
+                            Icons.verified,
+                            size: 16,
+                            color: AppColors.fptGreen,
+                          ),
                         ],
                       ],
                     ),
@@ -158,33 +168,45 @@ class AlumniCardWidget extends StatelessWidget {
                 ),
                 child: Text(
                   s,
-                  style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               );
             }).toList(),
           ),
           const SizedBox(height: 12),
 
-          // Rating and session stats
-          Row(
-            children: [
-              const Icon(Icons.star, size: 16, color: Color(0xFFF59E0B)),
-              const SizedBox(width: 4),
-              Text(
-                '${alumni.rating}',
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-              ),
-              Text(
-                ' (${alumni.reviewsCount} đánh giá)',
-                style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
-              ),
-              const Spacer(),
-              Text(
-                '${alumni.completedSessions} buổi đã hướng dẫn',
-                style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-              ),
-            ],
-          ),
+          if (alumni.rating > 0)
+            Row(
+              children: [
+                const Icon(Icons.star, size: 16, color: Color(0xFFF59E0B)),
+                const SizedBox(width: 4),
+                Text(
+                  '${alumni.rating}',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  ' (${alumni.reviewsCount} đánh giá)',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '${alumni.completedSessions} buổi đã hướng dẫn',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
           const SizedBox(height: 14),
 
           // Actions: [Xem hồ sơ] & [Đặt lịch 1-1]
@@ -193,16 +215,23 @@ class AlumniCardWidget extends StatelessWidget {
               Expanded(
                 child: OutlinedButton(
                   onPressed: () {
+                    onViewProfile?.call();
                     context.push('/alumni-profile/${alumni.id}');
                   },
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: AppColors.border),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 11),
                   ),
                   child: const Text(
                     'Xem hồ sơ',
-                    style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: 13),
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
               ),
@@ -216,12 +245,19 @@ class AlumniCardWidget extends StatelessWidget {
                     backgroundColor: AppColors.fptOrange,
                     foregroundColor: Colors.white,
                     elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 11),
                   ),
                   child: Text(
-                    alumni.isAvailableForMentoring ? 'Đặt lịch 1-1' : 'Xin Referral',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    alumni.isAvailableForMentoring
+                        ? 'Đặt lịch 1-1'
+                        : 'Xin Referral',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
               ),

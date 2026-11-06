@@ -1,89 +1,90 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:alumni_connect/features/ai/data/ai_repository.dart';
 import 'package:alumni_connect/features/ai/data/models/ai_chat_model.dart';
-import 'package:alumni_connect/features/ai/data/mock/ai_mock_data.dart';
 
 abstract class AiChatState {}
 
 class AiChatInitial extends AiChatState {}
 
 class AiChatLoaded extends AiChatState {
+  AiChatLoaded({required this.messages, this.isGenerating = false});
   final List<ChatMessage> messages;
   final bool isGenerating;
-
-  AiChatLoaded({
-    required this.messages,
-    this.isGenerating = false,
-  });
-
-  AiChatLoaded copyWith({
-    List<ChatMessage>? messages,
-    bool? isGenerating,
-  }) {
-    return AiChatLoaded(
-      messages: messages ?? this.messages,
-      isGenerating: isGenerating ?? this.isGenerating,
-    );
-  }
+  AiChatLoaded copyWith({List<ChatMessage>? messages, bool? isGenerating}) =>
+      AiChatLoaded(
+        messages: messages ?? this.messages,
+        isGenerating: isGenerating ?? this.isGenerating,
+      );
 }
 
 class AiChatCubit extends Cubit<AiChatState> {
-  AiChatCubit() : super(AiChatInitial());
+  AiChatCubit(this._repository) : super(AiChatLoaded(messages: const []));
+  final AiRepository _repository;
+  String? _conversationId;
 
-  void loadChat() {
-    emit(AiChatLoaded(messages: List.from(AiMockData.initialMessages)));
+  void loadChat() => emit(AiChatLoaded(messages: const []));
+
+  Future<List<Map<String, dynamic>>> loadConversations() =>
+      _repository.loadConversations();
+
+  Future<void> openConversation(String id) async {
+    final history = await _repository.loadConversation(id);
+    _conversationId = id;
+    emit(AiChatLoaded(messages: _repository.parseHistory(history)));
   }
 
-  void sendMessage(String query) async {
-    if (state is! AiChatLoaded) return;
-    final currentState = state as AiChatLoaded;
-
-    final userMsg = ChatMessage(
-      id: 'msg_${DateTime.now().millisecondsSinceEpoch}',
-      content: query,
+  Future<void> sendMessage(String query) async {
+    final current = state;
+    if (current is! AiChatLoaded ||
+        query.trim().isEmpty ||
+        current.isGenerating)
+      return;
+    final userMessage = ChatMessage(
+      id: 'local-${DateTime.now().microsecondsSinceEpoch}',
+      content: query.trim(),
       isUser: true,
       timestamp: DateTime.now(),
     );
-
-    emit(currentState.copyWith(
-      messages: [...currentState.messages, userMsg],
-      isGenerating: true,
-    ));
-
-    // Simulate AI inference and RAG retrieval
-    await Future.delayed(const Duration(milliseconds: 1200));
-
-    final aiReply = ChatMessage(
-      id: 'msg_ai_${DateTime.now().millisecondsSinceEpoch}',
-      content:
-          'Dựa trên thông tin tổng hợp từ các bài viết thảo luận của Cựu sinh viên FPT về "$query":\n\n'
-          '• **Lời khuyên thực tiễn:** Bạn nên chủ động rèn luyện tư duy tự giải quyết vấn đề, chuẩn bị sẵn portfolio/GitHub rõ ràng và thể hiện thái độ cầu thị, tích cực trong buổi phỏng vấn.\n\n'
-          '• **Gợi ý kết nối:** Bạn có thể tham khảo thêm các buổi Mentoring 1-1 tại mục "Kết nối" để được các anh chị Tech Leads trực tiếp mock interview.',
-      isUser: false,
-      timestamp: DateTime.now(),
-      sources: const [
-        CitationSource(
-          title: 'Kinh nghiệm chuẩn bị CV & phỏng vấn xin việc OJT kỳ Fall 2026',
-          author: 'Lê Thị Thu Thảo (Alumni K13)',
-          postId: 'post_thao',
-          timeAgo: '2 giờ trước',
-        ),
-      ],
-      followUpQuestions: [
-        'Làm thế nào để đặt lịch Mock Interview với Mentor?',
-        'Có những câu hỏi phỏng vấn kỹ thuật phổ biến nào?',
-      ],
+    emit(
+      current.copyWith(
+        messages: [...current.messages, userMessage],
+        isGenerating: true,
+      ),
     );
-
-    if (state is AiChatLoaded) {
-      final updatedState = state as AiChatLoaded;
-      emit(updatedState.copyWith(
-        messages: [...updatedState.messages, aiReply],
-        isGenerating: false,
-      ));
+    try {
+      final result = await _repository.ask(
+        query.trim(),
+        conversationId: _conversationId,
+      );
+      _conversationId = result.conversationId;
+      final latest = state as AiChatLoaded;
+      emit(
+        latest.copyWith(
+          messages: [...latest.messages, result.message],
+          isGenerating: false,
+        ),
+      );
+    } catch (error) {
+      final latest = state as AiChatLoaded;
+      emit(
+        latest.copyWith(
+          messages: [
+            ...latest.messages,
+            ChatMessage(
+              id: 'error-${DateTime.now().microsecondsSinceEpoch}',
+              content: 'Không thể kết nối AI service: $error',
+              isUser: false,
+              timestamp: DateTime.now(),
+            ),
+          ],
+          isGenerating: false,
+        ),
+      );
     }
   }
 
   void clearChat() {
-    emit(AiChatLoaded(messages: [AiMockData.initialMessages.first]));
+    _conversationId = null;
+    emit(AiChatLoaded(messages: const []));
   }
 }

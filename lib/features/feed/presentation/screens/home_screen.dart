@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:alumni_connect/core/theme/app_colors.dart';
 import 'package:alumni_connect/features/feed/presentation/cubit/feed_cubit.dart';
 import 'package:alumni_connect/features/feed/presentation/widgets/stories_carousel_widget.dart';
 import 'package:alumni_connect/features/feed/presentation/widgets/post_card_widget.dart';
+import 'package:alumni_connect/features/lab3/presentation/viewmodels/remote_config_view_model.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
 
@@ -33,6 +36,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final remoteSettings =
+        ref.watch(remoteConfigViewModelProvider).asData?.value ??
+        RemoteConfigUiSettings.defaults;
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -43,7 +49,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 autofocus: true,
                 decoration: InputDecoration(
                   hintText: 'Tìm bài viết, hashtag, tác giả (FO-13)...',
-                  hintStyle: const TextStyle(fontSize: 14, color: AppColors.textMuted),
+                  hintStyle: const TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textMuted,
+                  ),
                   border: InputBorder.none,
                   suffixIcon: IconButton(
                     icon: const Icon(Icons.clear, size: 20),
@@ -57,16 +66,22 @@ class _HomeScreenState extends State<HomeScreen> {
                 onChanged: (val) {
                   context.read<FeedCubit>().searchPosts(val);
                 },
+                onSubmitted: (_) =>
+                    context.read<FeedCubit>().trackSearchResults(),
               )
             : Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: AppColors.fptOrange.withOpacity(0.12),
+                      color: AppColors.fptOrange.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.school, color: AppColors.fptOrange, size: 20),
+                    child: const Icon(
+                      Icons.school,
+                      color: AppColors.fptOrange,
+                      size: 20,
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Column(
@@ -82,13 +97,23 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       Text(
                         'Đại học FPT',
-                        style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textMuted,
+                        ),
                       ),
                     ],
                   ),
                 ],
               ),
         actions: [
+          if (kDebugMode)
+            IconButton(
+              icon: const Icon(Icons.sync, size: 20),
+              tooltip: 'Tải lại cấu hình Remote Config',
+              onPressed: () =>
+                  ref.read(remoteConfigViewModelProvider.notifier).refresh(),
+            ),
           IconButton(
             icon: Icon(_isSearching ? Icons.close : Icons.search, size: 22),
             tooltip: 'Tìm kiếm bài viết (FO-13)',
@@ -105,38 +130,41 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
           if (!_isSearching) ...[
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.notifications_outlined, size: 22),
+                  tooltip: 'Thông báo',
+                  onPressed: () => context.push('/notifications'),
+                ),
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: AppColors.fptOrange,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+              ],
+            ),
             IconButton(
               icon: const Icon(Icons.chat_outlined, size: 22),
               tooltip: 'Tin nhắn (CH-03)',
               onPressed: () => context.push('/chats'),
             ),
             IconButton(
-              icon: const Icon(Icons.auto_awesome, color: AppColors.fptOrange, size: 22),
+              icon: const Icon(
+                Icons.auto_awesome,
+                color: AppColors.fptOrange,
+                size: 22,
+              ),
               tooltip: 'AI Trợ lý',
               onPressed: () => context.go('/ai-assistant'),
-            ),
-            Stack(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.notifications_none, size: 22),
-                  onPressed: () {},
-                ),
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                      color: AppColors.fptOrange,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Text(
-                      '3',
-                      style: TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-              ],
             ),
             const SizedBox(width: 4),
           ],
@@ -150,8 +178,35 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           }
 
+          if (state is FeedFailure) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.cloud_off,
+                    size: 42,
+                    color: AppColors.textMuted,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Không tải được diễn đàn: ${state.message}',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    onPressed: () => context.read<FeedCubit>().loadFeed(),
+                    child: const Text('Thử lại'),
+                  ),
+                ],
+              ),
+            );
+          }
+
           if (state is FeedLoaded) {
-            final displayPosts = state.filteredPosts;
+            final displayPosts = state.filteredPosts
+                .take(remoteSettings.maxItemsDisplay)
+                .toList();
 
             return RefreshIndicator(
               color: AppColors.fptOrange,
@@ -166,6 +221,75 @@ class _HomeScreenState extends State<HomeScreen> {
                   if (!_isSearching) ...[
                     StoriesCarouselWidget(stories: state.stories),
                     const SizedBox(height: 8),
+
+                    // 1.5 Community Events Banner
+                    if (remoteSettings.isPromoBannerEnabled)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: InkWell(
+                          onTap: () => context.push('/events'),
+                          borderRadius: BorderRadius.circular(14),
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 16),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFFF27024), Color(0xFFFF8C42)],
+                              ),
+                              borderRadius: BorderRadius.circular(14),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFFF27024)
+                                      .withValues(alpha: 0.28),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              children: const [
+                                Icon(
+                                  Icons.campaign,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                                SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Sự kiện & Workshop FPTU mới nhất',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Khám phá Tech Talk, Workshop CV & Họp mặt Alumni',
+                                        style: TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.arrow_forward_ios,
+                                  color: Colors.white,
+                                  size: 14,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
 
                     // 2. Quick Create Post Box
                     GestureDetector(
@@ -184,21 +308,25 @@ class _HomeScreenState extends State<HomeScreen> {
                               children: [
                                 const CircleAvatar(
                                   radius: 18,
-                                  backgroundImage: NetworkImage(
-                                    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-                                  ),
+                                  child: Icon(Icons.person_outline, size: 20),
                                 ),
                                 const SizedBox(width: 10),
                                 Expanded(
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 10,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: const Color(0xFFF1F5F9),
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: const Text(
                                       'Chia sẻ kinh nghiệm hoặc tin tuyển dụng...',
-                                      style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: AppColors.textMuted,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -208,9 +336,21 @@ class _HomeScreenState extends State<HomeScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: [
-                                _buildQuickAction(Icons.photo_camera_outlined, 'Ảnh/Video', Colors.green),
-                                _buildQuickAction(Icons.work_outline, 'Referral', AppColors.fptBlue),
-                                _buildQuickAction(Icons.help_outline, 'Hỏi Mentor', AppColors.fptOrange),
+                                _buildQuickAction(
+                                  Icons.photo_camera_outlined,
+                                  'Ảnh/Video',
+                                  Colors.green,
+                                ),
+                                _buildQuickAction(
+                                  Icons.work_outline,
+                                  'Referral',
+                                  AppColors.fptBlue,
+                                ),
+                                _buildQuickAction(
+                                  Icons.help_outline,
+                                  'Hỏi Mentor',
+                                  AppColors.fptOrange,
+                                ),
                               ],
                             ),
                           ],
@@ -226,27 +366,39 @@ class _HomeScreenState extends State<HomeScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         scrollDirection: Axis.horizontal,
                         itemCount: categories.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 8),
+                        separatorBuilder: (_, _) => const SizedBox(width: 8),
                         itemBuilder: (context, index) {
                           final cat = categories[index];
                           final isActive = state.selectedCategory == cat;
                           return GestureDetector(
-                            onTap: () => context.read<FeedCubit>().selectCategory(cat),
+                            onTap: () =>
+                                context.read<FeedCubit>().selectCategory(cat),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 8,
+                              ),
                               decoration: BoxDecoration(
-                                color: isActive ? AppColors.fptOrange : Colors.white,
+                                color: isActive
+                                    ? AppColors.fptOrange
+                                    : Colors.white,
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
-                                  color: isActive ? AppColors.fptOrange : AppColors.border,
+                                  color: isActive
+                                      ? AppColors.fptOrange
+                                      : AppColors.border,
                                 ),
                               ),
                               child: Text(
                                 cat,
                                 style: TextStyle(
                                   fontSize: 12,
-                                  fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                                  color: isActive ? Colors.white : AppColors.textSecondary,
+                                  fontWeight: isActive
+                                      ? FontWeight.bold
+                                      : FontWeight.w500,
+                                  color: isActive
+                                      ? Colors.white
+                                      : AppColors.textSecondary,
                                 ),
                               ),
                             ),
@@ -255,9 +407,87 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
+                    SizedBox(
+                      height: 34,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        children: [
+                          for (final entry in const <String?, String>{
+                            null: 'Mọi campus',
+                            'FU-HL': 'Hòa Lạc',
+                            'FU-DN': 'Đà Nẵng',
+                            'FU-HCM': 'TP.HCM',
+                            'FU-CT': 'Cần Thơ',
+                            'FU-QN': 'Quy Nhơn',
+                          }.entries)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: ChoiceChip(
+                                label: Text(entry.value),
+                                selected:
+                                    context.read<FeedCubit>().selectedCampus ==
+                                    entry.key,
+                                onSelected: (_) => context
+                                    .read<FeedCubit>()
+                                    .selectCampus(entry.key),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    SizedBox(
+                      height: 34,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        children: [
+                          for (final option in const <(bool?, String)>[
+                            (null, 'Tất cả câu hỏi'),
+                            (false, 'Chưa có câu trả lời'),
+                            (true, 'Đã giải đáp'),
+                          ])
+                            Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: ChoiceChip(
+                                label: Text(option.$2),
+                                selected:
+                                    context.read<FeedCubit>().answeredFilter ==
+                                    option.$1,
+                                onSelected: (_) => context
+                                    .read<FeedCubit>()
+                                    .selectAnswered(option.$1),
+                              ),
+                            ),
+                          const SizedBox(width: 8),
+                          ChoiceChip(
+                            label: const Text('Mới nhất'),
+                            selected:
+                                context.read<FeedCubit>().selectedSort ==
+                                'latest',
+                            onSelected: (_) =>
+                                context.read<FeedCubit>().selectSort('latest'),
+                          ),
+                          const SizedBox(width: 8),
+                          ChoiceChip(
+                            label: const Text('Phổ biến'),
+                            selected:
+                                context.read<FeedCubit>().selectedSort ==
+                                'popular',
+                            onSelected: (_) =>
+                                context.read<FeedCubit>().selectSort('popular'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                   ] else ...[
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       child: Text(
                         'Kết quả tìm kiếm cho "${state.searchQuery}" (${displayPosts.length})',
                         style: const TextStyle(
@@ -276,10 +506,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Center(
                         child: Column(
                           children: const [
-                            Icon(Icons.search_off, size: 48, color: AppColors.textMuted),
+                            Icon(
+                              Icons.search_off,
+                              size: 48,
+                              color: AppColors.textMuted,
+                            ),
                             SizedBox(height: 12),
                             Text(
-                              'Không tìm thấy bài viết nào phù hợp',
+                              'Chưa có bài viết phù hợp.',
                               style: TextStyle(color: AppColors.textSecondary),
                             ),
                           ],
@@ -290,8 +524,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     ...displayPosts.map(
                       (post) => PostCardWidget(
                         post: post,
-                        onLike: () => context.read<FeedCubit>().toggleLike(post.id),
-                        onTap: () => context.push('/post-detail/${post.id}'),
+                        onLike: () =>
+                            context.read<FeedCubit>().toggleLike(post.id),
+                        onTap: () {
+                          context.read<FeedCubit>().trackPostOpened();
+                          context.push('/post-detail/${post.id}');
+                        },
                       ),
                     ),
                 ],
@@ -319,7 +557,11 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(width: 4),
         Text(
           label,
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textSecondary,
+          ),
         ),
       ],
     );
