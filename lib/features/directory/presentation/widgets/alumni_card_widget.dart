@@ -74,6 +74,7 @@ class AlumniCardWidget extends StatelessWidget {
                               fontWeight: FontWeight.bold,
                               color: AppColors.textPrimary,
                             ),
+                            maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -95,6 +96,7 @@ class AlumniCardWidget extends StatelessWidget {
                         fontWeight: FontWeight.w600,
                         color: AppColors.fptBlue,
                       ),
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
@@ -104,6 +106,7 @@ class AlumniCardWidget extends StatelessWidget {
                         fontSize: 11,
                         color: AppColors.textSecondary,
                       ),
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
@@ -113,9 +116,9 @@ class AlumniCardWidget extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          // Mentoring Status Badge
+          // Mentoring Status Badge (Flexible text to prevent overflow on 320dp screens)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
               color: alumni.isAvailableForMentoring
                   ? const Color(0xFFECFDF5)
@@ -138,16 +141,20 @@ class AlumniCardWidget extends StatelessWidget {
                       : AppColors.fptBlue,
                 ),
                 const SizedBox(width: 6),
-                Text(
-                  alumni.isAvailableForMentoring
-                      ? 'Đang mở lịch Mentoring 1-1 (Miễn phí cho SV FPT)'
-                      : 'Sẵn sàng Referral tuyển dụng FPT Software',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: alumni.isAvailableForMentoring
-                        ? const Color(0xFF065F46)
-                        : const Color(0xFF1E40AF),
+                Flexible(
+                  child: Text(
+                    alumni.isAvailableForMentoring
+                        ? 'Đang mở lịch Mentoring 1-1 (Miễn phí cho SV FPT)'
+                        : 'Sẵn sàng Referral tuyển dụng FPT Software',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: alumni.isAvailableForMentoring
+                          ? const Color(0xFF065F46)
+                          : const Color(0xFF1E40AF),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -190,19 +197,30 @@ class AlumniCardWidget extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                Text(
-                  ' (${alumni.reviewsCount} đánh giá)',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textMuted,
+                Flexible(
+                  child: Text(
+                    ' (${alumni.reviewsCount} đánh giá)',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textMuted,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const Spacer(),
-                Text(
-                  '${alumni.completedSessions} buổi đã hướng dẫn',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      '${alumni.completedSessions} buổi đã hướng dẫn',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ),
               ],
@@ -227,6 +245,8 @@ class AlumniCardWidget extends StatelessWidget {
                   ),
                   child: const Text(
                     'Xem hồ sơ',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.w600,
@@ -254,6 +274,8 @@ class AlumniCardWidget extends StatelessWidget {
                     alumni.isAvailableForMentoring
                         ? 'Đặt lịch 1-1'
                         : 'Xin Referral',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 13,

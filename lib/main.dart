@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -34,6 +35,17 @@ import 'package:alumni_connect/firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Đồng bộ hiển thị tràn viền (Edge-to-Edge) cho mọi dòng máy Android (Gesture Bar & 3-Button Nav)
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarIconBrightness: Brightness.dark,
+    ),
+  );
 
   NotificationItem? initialNotification;
   if (DefaultFirebaseOptions.isConfigured) {
@@ -148,6 +160,17 @@ class FptAlumniConnectApp extends StatelessWidget {
             theme: AppTheme.lightTheme,
             scaffoldMessengerKey: FcmMessagingService.scaffoldMessengerKey,
             routerConfig: AppRouter.router,
+            builder: (context, child) {
+              final mediaQuery = MediaQuery.of(context);
+              final clampedScaler = mediaQuery.textScaler.clamp(
+                minScaleFactor: 0.85,
+                maxScaleFactor: 1.15,
+              );
+              return MediaQuery(
+                data: mediaQuery.copyWith(textScaler: clampedScaler),
+                child: child ?? const SizedBox.shrink(),
+              );
+            },
           ),
         ),
       ),

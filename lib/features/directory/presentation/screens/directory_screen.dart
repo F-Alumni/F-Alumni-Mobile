@@ -45,6 +45,8 @@ class _DirectoryContent extends StatelessWidget {
           children: const [
             Text(
               'Danh bạ Cựu sinh viên FPT',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.bold,
@@ -53,6 +55,8 @@ class _DirectoryContent extends StatelessWidget {
             ),
             Text(
               'Kết nối thành viên & Mentor FPTU (US-05, US-06)',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(fontSize: 11, color: AppColors.textMuted),
             ),
           ],
@@ -98,6 +102,8 @@ class _DirectoryContent extends StatelessWidget {
               color: AppColors.fptOrange,
               onRefresh: () => context.read<DirectoryCubit>().loadDirectory(),
               child: ListView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.only(top: 8, bottom: 80),
                 children: [
@@ -340,100 +346,106 @@ class _DirectoryContent extends StatelessWidget {
 
     final filters = await showModalBottomSheet<(String, String)>(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (sheetContext) => StatefulBuilder(
-        builder: (context, setSheetState) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Lọc danh bạ Cựu sinh viên (US-06)',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+        builder: (context, setSheetState) {
+          final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+          return SafeArea(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(20, 20, 20, bottomInset + 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Flexible(
+                        child: Text(
+                          'Lọc danh bạ Cựu sinh viên (US-06)',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
                       ),
+                      TextButton(
+                        onPressed: () {
+                          setSheetState(() {
+                            selectedCampus = '';
+                            selectedMajor = '';
+                          });
+                        },
+                        child: const Text('Xóa lọc'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Cơ sở FPTU (Campus)',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
                     ),
-                    TextButton(
-                      onPressed: () {
-                        setSheetState(() {
-                          selectedCampus = '';
-                          selectedMajor = '';
-                        });
-                      },
-                      child: const Text('Xóa lọc'),
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      for (final entry in _campusChips.entries)
+                        ChoiceChip(
+                          label: Text(entry.value),
+                          selected: selectedCampus == entry.key,
+                          onSelected: (_) =>
+                              setSheetState(() => selectedCampus = entry.key),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  const Text(
+                    'Chuyên ngành (Major)',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
                     ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Cơ sở FPTU (Campus)',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
                   ),
-                ),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  children: [
-                    for (final entry in _campusChips.entries)
-                      ChoiceChip(
-                        label: Text(entry.value),
-                        selected: selectedCampus == entry.key,
-                        onSelected: (_) =>
-                            setSheetState(() => selectedCampus = entry.key),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                const Text(
-                  'Chuyên ngành (Major)',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      for (final entry in _majorChips.entries)
+                        ChoiceChip(
+                          label: Text(entry.value),
+                          selected: selectedMajor == entry.key,
+                          onSelected: (_) =>
+                              setSheetState(() => selectedMajor = entry.key),
+                        ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  children: [
-                    for (final entry in _majorChips.entries)
-                      ChoiceChip(
-                        label: Text(entry.value),
-                        selected: selectedMajor == entry.key,
-                        onSelected: (_) =>
-                            setSheetState(() => selectedMajor = entry.key),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: () => Navigator.pop(sheetContext, (
-                      selectedCampus,
-                      selectedMajor,
-                    )),
-                    child: const Text('Áp dụng bộ lọc'),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: () => Navigator.pop(sheetContext, (
+                        selectedCampus,
+                        selectedMajor,
+                      )),
+                      child: const Text('Áp dụng bộ lọc'),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
 

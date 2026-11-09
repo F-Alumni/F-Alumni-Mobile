@@ -26,7 +26,7 @@ class PostCardWidget extends StatelessWidget {
         border: Border.all(color: AppColors.border, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -48,9 +48,11 @@ class PostCardWidget extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       radius: 20,
-                      backgroundColor: AppColors.primary.withOpacity(0.15),
+                      backgroundColor: AppColors.primary.withValues(
+                        alpha: 0.15,
+                      ),
                       backgroundImage: NetworkImage(post.authorAvatar),
-                      onBackgroundImageError: (_, __) {},
+                      onBackgroundImageError: (_, _) {},
                       child: Text(
                         post.authorName.isNotEmpty ? post.authorName[0] : 'U',
                         style: const TextStyle(
@@ -74,6 +76,7 @@ class PostCardWidget extends StatelessWidget {
                                     fontWeight: FontWeight.bold,
                                     color: AppColors.textPrimary,
                                   ),
+                                  maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
@@ -94,18 +97,20 @@ class PostCardWidget extends StatelessWidget {
                               fontSize: 12,
                               color: AppColors.textSecondary,
                             ),
+                            maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
                     ),
+                    const SizedBox(width: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
                         vertical: 3,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.secondary.withOpacity(0.08),
+                        color: AppColors.secondary.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -160,7 +165,9 @@ class PostCardWidget extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
                           children: [
                             Container(
                               padding: const EdgeInsets.symmetric(
@@ -168,7 +175,9 @@ class PostCardWidget extends StatelessWidget {
                                 vertical: 3,
                               ),
                               decoration: BoxDecoration(
-                                color: AppColors.fptOrange.withOpacity(0.15),
+                                color: AppColors.fptOrange.withValues(
+                                  alpha: 0.15,
+                                ),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: const Text(
@@ -180,7 +189,6 @@ class PostCardWidget extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 6),
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 8,
@@ -242,7 +250,7 @@ class PostCardWidget extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.1),
+                            color: Colors.white.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Icon(
@@ -271,7 +279,7 @@ class PostCardWidget extends StatelessWidget {
                                 post.attachmentSubtitle ?? '',
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: Colors.white.withOpacity(0.7),
+                                  color: Colors.white.withValues(alpha: 0.7),
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -288,6 +296,7 @@ class PostCardWidget extends StatelessWidget {
                 // Tags
                 Wrap(
                   spacing: 6,
+                  runSpacing: 4,
                   children: post.tags.map((tag) {
                     return Text(
                       tag,
@@ -301,13 +310,17 @@ class PostCardWidget extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 const Divider(height: 1, color: AppColors.border),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
 
-                // Social Action Bar
+                // Social Action Bar (Responsive on narrow 320dp screens)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     TextButton.icon(
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
                       onPressed: onLike,
                       icon: Icon(
                         post.isLiked ? Icons.favorite : Icons.favorite_border,
@@ -330,6 +343,10 @@ class PostCardWidget extends StatelessWidget {
                       ),
                     ),
                     TextButton.icon(
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
                       onPressed: onTap,
                       icon: const Icon(
                         Icons.chat_bubble_outline,
@@ -345,6 +362,10 @@ class PostCardWidget extends StatelessWidget {
                       ),
                     ),
                     TextButton.icon(
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                      ),
                       onPressed: null,
                       icon: const Icon(
                         Icons.share_outlined,
@@ -360,6 +381,7 @@ class PostCardWidget extends StatelessWidget {
                       ),
                     ),
                     IconButton(
+                      visualDensity: VisualDensity.compact,
                       tooltip: 'Lưu bài viết (FO-09)',
                       onPressed: onBookmark,
                       icon: Icon(

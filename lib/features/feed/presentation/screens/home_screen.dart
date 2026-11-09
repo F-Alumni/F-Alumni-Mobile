@@ -45,14 +45,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final cubit = context.read<FeedCubit>();
     await showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (sheetContext) => StatefulBuilder(
         builder: (context, setSheetState) {
+          final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
           return SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(20, 20, 20, bottomInset + 20),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -60,12 +62,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Bộ lọc & Sắp xếp bảng tin',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
+                      const Flexible(
+                        child: Text(
+                          'Bộ lọc & Sắp xếp bảng tin',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
                       ),
                       TextButton(
@@ -141,6 +145,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   const SizedBox(height: 6),
                   Wrap(
                     spacing: 8,
+                    runSpacing: 4,
                     children: [
                       ChoiceChip(
                         label: const Text('Mới nhất'),
@@ -185,7 +190,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        titleSpacing: 16,
+        titleSpacing: 12,
         title: _isSearching
             ? TextField(
                 controller: _searchController,
@@ -227,38 +232,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'FPT Alumni Connect',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.fptBlue,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Text(
+                          'FPT Alumni Connect',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.fptBlue,
+                          ),
                         ),
-                      ),
-                      Text(
-                        'Đại học FPT',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textMuted,
+                        Text(
+                          'Đại học FPT',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textMuted,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),
         actions: [
           if (kDebugMode)
             IconButton(
+              visualDensity: VisualDensity.compact,
               icon: const Icon(Icons.sync, size: 20),
               tooltip: 'Tải lại cấu hình Remote Config',
               onPressed: () =>
                   ref.read(remoteConfigViewModelProvider.notifier).refresh(),
             ),
           IconButton(
-            icon: Icon(_isSearching ? Icons.close : Icons.search, size: 22),
+            visualDensity: VisualDensity.compact,
+            icon: Icon(_isSearching ? Icons.close : Icons.search, size: 21),
             tooltip: 'Tìm kiếm bài viết (FO-13)',
             onPressed: () {
               setState(() {
@@ -277,13 +291,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               alignment: Alignment.center,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.notifications_outlined, size: 22),
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.notifications_outlined, size: 21),
                   tooltip: 'Thông báo',
                   onPressed: () => context.push('/notifications'),
                 ),
                 Positioned(
                   top: 10,
-                  right: 10,
+                  right: 8,
                   child: Container(
                     width: 8,
                     height: 8,
@@ -296,15 +311,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ],
             ),
             IconButton(
-              icon: const Icon(Icons.chat_outlined, size: 22),
+              visualDensity: VisualDensity.compact,
+              icon: const Icon(Icons.chat_outlined, size: 21),
               tooltip: 'Tin nhắn (CH-03)',
               onPressed: () => context.push('/chats'),
             ),
             IconButton(
+              visualDensity: VisualDensity.compact,
               icon: const Icon(
                 Icons.auto_awesome,
                 color: AppColors.fptOrange,
-                size: 22,
+                size: 21,
               ),
               tooltip: 'AI Trợ lý',
               onPressed: () => context.go('/ai-assistant'),
@@ -323,25 +340,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
           if (state is FeedFailure) {
             return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.cloud_off,
-                    size: 42,
-                    color: AppColors.textMuted,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Không tải được diễn đàn: ${state.message}',
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 12),
-                  FilledButton(
-                    onPressed: () => context.read<FeedCubit>().loadFeed(),
-                    child: const Text('Thử lại'),
-                  ),
-                ],
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.cloud_off,
+                      size: 42,
+                      color: AppColors.textMuted,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Không tải được diễn đàn: ${state.message}',
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    FilledButton(
+                      onPressed: () => context.read<FeedCubit>().loadFeed(),
+                      child: const Text('Thử lại'),
+                    ),
+                  ],
+                ),
               ),
             );
           }
@@ -363,6 +383,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 context.read<FeedCubit>().loadFeed();
               },
               child: ListView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.only(top: 12, bottom: 80),
                 children: [
@@ -472,6 +494,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     ),
                                     child: const Text(
                                       'Chia sẻ kinh nghiệm hoặc tin tuyển dụng...',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
                                         fontSize: 13,
                                         color: AppColors.textMuted,
@@ -482,8 +506,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               ],
                             ),
                             const SizedBox(height: 10),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            Wrap(
+                              spacing: 16,
+                              runSpacing: 6,
+                              alignment: WrapAlignment.spaceAround,
                               children: [
                                 _buildQuickAction(
                                   Icons.photo_camera_outlined,
@@ -508,98 +534,105 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                     const SizedBox(height: 12),
 
-                    // 3. Compact Filter Button + Category Chips Row
-                    SizedBox(
-                      height: 38,
-                      child: ListView.separated(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        scrollDirection: Axis.horizontal,
-                        itemCount: categories.length + 1,
-                        separatorBuilder: (_, _) => const SizedBox(width: 8),
-                        itemBuilder: (context, index) {
-                          if (index == 0) {
-                            final hasFilter = activeFilterCount > 0;
-                            return GestureDetector(
-                              onTap: () => _showAdvancedFilters(context),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: hasFilter
-                                      ? AppColors.fptBlue
-                                      : Colors.white,
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
+                    // 3. Compact Filter Button + Category Chips Row (Auto-sizing height for 1.3x - 2.0x text scales)
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        children: [
+                          Builder(
+                            builder: (context) {
+                              final hasFilter = activeFilterCount > 0;
+                              return GestureDetector(
+                                onTap: () => _showAdvancedFilters(context),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
                                     color: hasFilter
                                         ? AppColors.fptBlue
-                                        : AppColors.border,
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.tune,
-                                      size: 15,
+                                        : Colors.white,
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
                                       color: hasFilter
-                                          ? Colors.white
-                                          : AppColors.fptBlue,
+                                          ? AppColors.fptBlue
+                                          : AppColors.border,
                                     ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      hasFilter
-                                          ? 'Bộ lọc ($activeFilterCount)'
-                                          : 'Bộ lọc',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.tune,
+                                        size: 15,
                                         color: hasFilter
                                             ? Colors.white
                                             : AppColors.fptBlue,
                                       ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        hasFilter
+                                            ? 'Bộ lọc ($activeFilterCount)'
+                                            : 'Bộ lọc',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: hasFilter
+                                              ? Colors.white
+                                              : AppColors.fptBlue,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          for (final cat in categories) ...[
+                            const SizedBox(width: 8),
+                            Builder(
+                              builder: (context) {
+                                final isActive = state.selectedCategory == cat;
+                                return GestureDetector(
+                                  onTap: () => context
+                                      .read<FeedCubit>()
+                                      .selectCategory(cat),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 8,
                                     ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          }
-                          final cat = categories[index - 1];
-                          final isActive = state.selectedCategory == cat;
-                          return GestureDetector(
-                            onTap: () =>
-                                context.read<FeedCubit>().selectCategory(cat),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isActive
-                                    ? AppColors.fptOrange
-                                    : Colors.white,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: isActive
-                                      ? AppColors.fptOrange
-                                      : AppColors.border,
-                                ),
-                              ),
-                              child: Text(
-                                cat,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: isActive
-                                      ? FontWeight.bold
-                                      : FontWeight.w500,
-                                  color: isActive
-                                      ? Colors.white
-                                      : AppColors.textSecondary,
-                                ),
-                              ),
+                                    decoration: BoxDecoration(
+                                      color: isActive
+                                          ? AppColors.fptOrange
+                                          : Colors.white,
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: isActive
+                                            ? AppColors.fptOrange
+                                            : AppColors.border,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      cat,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: isActive
+                                            ? FontWeight.bold
+                                            : FontWeight.w500,
+                                        color: isActive
+                                            ? Colors.white
+                                            : AppColors.textSecondary,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
-                          );
-                        },
+                          ],
+                        ],
                       ),
                     ),
 
@@ -729,6 +762,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildQuickAction(IconData icon, String label, Color color) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, size: 16, color: color),
         const SizedBox(width: 4),
