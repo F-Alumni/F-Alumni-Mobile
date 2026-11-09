@@ -9,16 +9,18 @@ class StoriesCarouselWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textHeight = MediaQuery.textScalerOf(context).scale(16);
     return SizedBox(
-      height: 104,
+      height: 82 + textHeight,
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,
         itemCount: stories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 14),
+        separatorBuilder: (_, _) => const SizedBox(width: 14),
         itemBuilder: (context, index) {
           final story = stories[index];
           return Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Stack(
                 children: [
@@ -28,13 +30,16 @@ class StoriesCarouselWidget extends StatelessWidget {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: story.isUser ? AppColors.fptOrange : AppColors.fptBlue,
+                        color: story.isUser
+                            ? AppColors.fptOrange
+                            : AppColors.fptBlue,
                         width: 2.2,
                       ),
                     ),
                     padding: const EdgeInsets.all(2.5),
                     child: CircleAvatar(
                       backgroundImage: NetworkImage(story.avatarUrl),
+                      onBackgroundImageError: (_, _) {},
                     ),
                   ),
                   if (story.isUser)
@@ -47,7 +52,11 @@ class StoriesCarouselWidget extends StatelessWidget {
                           color: AppColors.fptOrange,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.add, size: 14, color: Colors.white),
+                        child: const Icon(
+                          Icons.add,
+                          size: 14,
+                          color: Colors.white,
+                        ),
                       ),
                     )
                   else if (story.isOnline)
@@ -67,17 +76,19 @@ class StoriesCarouselWidget extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 6),
-              SizedBox(
-                width: 68,
-                child: Text(
-                  story.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+              Flexible(
+                child: SizedBox(
+                  width: 72,
+                  child: Text(
+                    story.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                 ),
               ),

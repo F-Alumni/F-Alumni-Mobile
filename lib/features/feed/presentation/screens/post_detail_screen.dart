@@ -346,6 +346,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                     color: AppColors.fptOrange,
                     onRefresh: _refreshSilently,
                     child: ListView(
+                      keyboardDismissBehavior:
+                          ScrollViewKeyboardDismissBehavior.onDrag,
                       padding: const EdgeInsets.all(16),
                       children: [
                         // Post Card Container
@@ -370,7 +372,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                         ? null
                                         : NetworkImage(post.authorAvatar),
                                     child: post.authorAvatar.isEmpty
-                                       ? Text(
+                                        ? Text(
                                             post.authorName.isNotEmpty
                                                 ? post.authorName[0]
                                                 : 'U',
@@ -389,6 +391,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                       children: [
                                         Text(
                                           post.authorName,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                           style: const TextStyle(
                                             fontSize: 15,
                                             fontWeight: FontWeight.bold,
@@ -398,6 +402,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                         const SizedBox(height: 2),
                                         Text(
                                           '${post.category} • ${post.timeAgo}',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                           style: const TextStyle(
                                             fontSize: 12,
                                             color: AppColors.textSecondary,
@@ -406,6 +412,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                       ],
                                     ),
                                   ),
+                                  const SizedBox(width: 6),
                                   Container(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 8,
@@ -452,12 +459,14 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                         color: Color(0xFF065F46),
                                       ),
                                       SizedBox(width: 4),
-                                      Text(
-                                        'Câu hỏi đã được giải đáp',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF065F46),
+                                      Flexible(
+                                        child: Text(
+                                          'Câu hỏi đã được giải đáp',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF065F46),
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -530,6 +539,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                               Row(
                                 children: [
                                   TextButton.icon(
+                                    style: TextButton.styleFrom(
+                                      visualDensity: VisualDensity.compact,
+                                    ),
                                     onPressed: () async {
                                       final feedCubit =
                                           context.read<FeedCubit>();
@@ -581,8 +593,11 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
+                                  const SizedBox(width: 4),
                                   TextButton.icon(
+                                    style: TextButton.styleFrom(
+                                      visualDensity: VisualDensity.compact,
+                                    ),
                                     onPressed: null,
                                     icon: const Icon(
                                       Icons.chat_bubble_outline,
@@ -598,6 +613,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                                   ),
                                   const Spacer(),
                                   IconButton(
+                                    visualDensity: VisualDensity.compact,
                                     tooltip: 'Lưu bài viết (FO-09)',
                                     onPressed: () async {
                                       final feedCubit =
@@ -725,6 +741,8 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                         Expanded(
                           child: Text(
                             'Đang trả lời ${_replyTo!.authorName}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -870,12 +888,14 @@ class _CommentTile extends StatelessWidget {
               children: const [
                 Icon(Icons.check_circle, size: 15, color: AppColors.fptGreen),
                 SizedBox(width: 4),
-                Text(
-                  'Câu trả lời được chấp nhận (FO-16)',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF065F46),
-                    fontWeight: FontWeight.bold,
+                Flexible(
+                  child: Text(
+                    'Câu trả lời được chấp nhận (FO-16)',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF065F46),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
@@ -906,6 +926,8 @@ class _CommentTile extends StatelessWidget {
             Expanded(
               child: Text(
                 '${comment.authorName} • ${comment.timeAgo}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,

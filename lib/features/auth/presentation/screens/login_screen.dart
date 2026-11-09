@@ -63,26 +63,27 @@ class _LoginScreenState extends State<LoginScreen> {
 
           return SafeArea(
             child: SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 32),
 
                     // ── FPT Logo & Brand ──────────────────────────────────
                     _buildBrandHeader(),
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 32),
 
                     // ── Login Card ────────────────────────────────────────
                     Container(
-                      padding: const EdgeInsets.all(24),
+                      padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         color: AppColors.surface,
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.06),
+                            color: Colors.black.withValues(alpha: 0.06),
                             blurRadius: 16,
                             offset: const Offset(0, 4),
                           ),
@@ -105,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               color: AppColors.textSecondary,
                             ),
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 20),
 
                           // ── Google SSO Button (primary, US-01) ─────────
                           _buildGoogleButton(isLoading),
@@ -142,11 +143,15 @@ class _LoginScreenState extends State<LoginScreen> {
                                   Icons.email_outlined,
                                   size: 20,
                                 ),
-                                label: const Text('Đăng nhập bằng FPT Mail'),
+                                label: const Text(
+                                  'Đăng nhập bằng FPT Mail',
+                                  textAlign: TextAlign.center,
+                                ),
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: AppColors.textPrimary,
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 14,
+                                    horizontal: 12,
                                   ),
                                   side: const BorderSide(
                                     color: AppColors.border,
@@ -298,16 +303,16 @@ class _LoginScreenState extends State<LoginScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
 
                     // ── FPT Domain notice ─────────────────────────────────
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: AppColors.secondary.withOpacity(0.08),
+                        color: AppColors.secondary.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: AppColors.secondary.withOpacity(0.2),
+                          color: AppColors.secondary.withValues(alpha: 0.2),
                         ),
                       ),
                       child: Row(
@@ -330,7 +335,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 32),
                   ],
                 ),
               ),
@@ -351,7 +356,7 @@ class _LoginScreenState extends State<LoginScreen> {
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -369,7 +374,6 @@ class _LoginScreenState extends State<LoginScreen> {
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Google G icon (custom paint)
                   Container(
                     width: 24,
                     height: 24,
@@ -388,12 +392,15 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Đăng nhập với FPT Google (US-01)',
-                    style: AppTypography.titleSmall.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                  const SizedBox(width: 10),
+                  Flexible(
+                    child: Text(
+                      'Đăng nhập với FPT Google (US-01)',
+                      textAlign: TextAlign.center,
+                      style: AppTypography.titleSmall.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ],
@@ -407,16 +414,15 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildBrandHeader() {
     return Column(
       children: [
-        // FPT Logo placeholder
         Container(
-          width: 80,
-          height: 80,
+          width: 72,
+          height: 72,
           decoration: BoxDecoration(
             color: AppColors.primary,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: AppColors.primary.withOpacity(0.3),
+                color: AppColors.primary.withValues(alpha: 0.3),
                 blurRadius: 16,
                 offset: const Offset(0, 6),
               ),
@@ -428,15 +434,16 @@ class _LoginScreenState extends State<LoginScreen> {
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w900,
-                fontSize: 22,
+                fontSize: 20,
                 letterSpacing: 1,
               ),
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
         Text(
           'Alumni Connect',
+          textAlign: TextAlign.center,
           style: AppTypography.headlineMedium.copyWith(
             fontWeight: FontWeight.w900,
             color: AppColors.textPrimary,
@@ -445,6 +452,7 @@ class _LoginScreenState extends State<LoginScreen> {
         const SizedBox(height: 6),
         Text(
           'Nền tảng kết nối cộng đồng FPT University',
+          textAlign: TextAlign.center,
           style: AppTypography.bodySmall.copyWith(
             color: AppColors.textSecondary,
           ),

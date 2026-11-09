@@ -38,6 +38,8 @@ class _JobsScreenState extends State<JobsScreen> {
         elevation: 0,
         title: Text(
           'Cơ hội Việc làm & OJT',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: AppTypography.titleMedium.copyWith(
             fontWeight: FontWeight.bold,
             color: AppColors.textPrimary,
@@ -85,48 +87,52 @@ class _JobsScreenState extends State<JobsScreen> {
             ),
           ),
 
-          // Horizontal Filter Chips
+          // Horizontal Filter Chips (Auto-sizing height for 1.3x - 2.0x text scales)
           BlocBuilder<JobsCubit, JobsState>(
             builder: (context, state) {
               final activeFilter = (state is JobsLoaded)
                   ? state.selectedFilter
                   : 'Tất cả';
-              return SizedBox(
-                height: 38,
-                child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _filters.length,
-                  separatorBuilder: (_, _) => const SizedBox(width: 8),
-                  itemBuilder: (context, index) {
-                    final filter = _filters[index];
-                    final isSelected = filter == activeFilter;
-                    return ChoiceChip(
-                      label: Text(filter),
-                      selected: isSelected,
-                      onSelected: (_) =>
-                          context.read<JobsCubit>().filterJobs(filter),
-                      selectedColor: AppColors.primary,
-                      backgroundColor: AppColors.surface,
-                      labelStyle: TextStyle(
-                        color: isSelected
-                            ? Colors.white
-                            : AppColors.textPrimary,
-                        fontSize: 12,
-                        fontWeight: isSelected
-                            ? FontWeight.bold
-                            : FontWeight.normal,
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    for (var i = 0; i < _filters.length; i++) ...[
+                      if (i > 0) const SizedBox(width: 8),
+                      Builder(
+                        builder: (context) {
+                          final filter = _filters[i];
+                          final isSelected = filter == activeFilter;
+                          return ChoiceChip(
+                            label: Text(filter),
+                            selected: isSelected,
+                            onSelected: (_) =>
+                                context.read<JobsCubit>().filterJobs(filter),
+                            selectedColor: AppColors.primary,
+                            backgroundColor: AppColors.surface,
+                            labelStyle: TextStyle(
+                              color: isSelected
+                                  ? Colors.white
+                                  : AppColors.textPrimary,
+                              fontSize: 12,
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              side: BorderSide(
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : AppColors.border,
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                        side: BorderSide(
-                          color: isSelected
-                              ? AppColors.primary
-                              : AppColors.border,
-                        ),
-                      ),
-                    );
-                  },
+                    ],
+                  ],
                 ),
               );
             },
@@ -192,6 +198,8 @@ class _JobsScreenState extends State<JobsScreen> {
                 }
 
                 return ListView.builder(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
                   padding: const EdgeInsets.only(bottom: 80),
                   itemCount: jobs.length,
                   itemBuilder: (context, index) {

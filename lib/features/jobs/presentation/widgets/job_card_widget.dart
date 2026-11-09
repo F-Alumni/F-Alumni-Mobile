@@ -25,7 +25,7 @@ class JobCardWidget extends StatelessWidget {
         border: Border.all(color: AppColors.border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -75,6 +75,8 @@ class JobCardWidget extends StatelessWidget {
                         children: [
                           Text(
                             job.companyName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: AppTypography.labelMedium.copyWith(
                               color: AppColors.textSecondary,
                               fontWeight: FontWeight.w600,
@@ -94,6 +96,7 @@ class JobCardWidget extends StatelessWidget {
                       ),
                     ),
                     IconButton(
+                      visualDensity: VisualDensity.compact,
                       icon: Icon(
                         job.isSaved ? Icons.bookmark : Icons.bookmark_border,
                         color: job.isSaved
@@ -110,20 +113,24 @@ class JobCardWidget extends StatelessWidget {
                 // Salary & Location pills
                 Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        job.salary,
-                        style: AppTypography.labelSmall.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
+                    Flexible(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          job.salary,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.labelSmall.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
@@ -140,6 +147,7 @@ class JobCardWidget extends StatelessWidget {
                         ),
                         child: Text(
                           job.location,
+                          maxLines: 1,
                           style: AppTypography.labelSmall.copyWith(
                             color: AppColors.textSecondary,
                           ),
@@ -151,15 +159,15 @@ class JobCardWidget extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
 
-                // Referral Alumni Badge (Screen 9 highlight)
+                // Referral Alumni Badge
                 if (job.hasReferral)
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: AppColors.secondary.withOpacity(0.06),
+                      color: AppColors.secondary.withValues(alpha: 0.06),
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: AppColors.secondary.withOpacity(0.2),
+                        color: AppColors.secondary.withValues(alpha: 0.2),
                       ),
                     ),
                     child: Row(
@@ -204,6 +212,7 @@ class JobCardWidget extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 6,
@@ -235,6 +244,7 @@ class JobCardWidget extends StatelessWidget {
                     Expanded(
                       child: Wrap(
                         spacing: 6,
+                        runSpacing: 2,
                         children: job.tags.take(3).map((tag) {
                           return Text(
                             tag,
@@ -246,6 +256,7 @@ class JobCardWidget extends StatelessWidget {
                         }).toList(),
                       ),
                     ),
+                    const SizedBox(width: 8),
                     Text(
                       job.postedTime,
                       style: AppTypography.labelSmall.copyWith(

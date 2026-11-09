@@ -52,16 +52,20 @@ class _UserProfileScreenState extends State<UserProfileScreen>
         if (state is ProfileError) {
           return Scaffold(
             body: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(state.message, textAlign: TextAlign.center),
-                  const SizedBox(height: 12),
-                  ElevatedButton(
-                    onPressed: () => context.read<ProfileCubit>().loadProfile(),
-                    child: const Text('Thử lại'),
-                  ),
-                ],
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(state.message, textAlign: TextAlign.center),
+                    const SizedBox(height: 12),
+                    ElevatedButton(
+                      onPressed: () =>
+                          context.read<ProfileCubit>().loadProfile(),
+                      child: const Text('Thử lại'),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
@@ -75,6 +79,9 @@ class _UserProfileScreenState extends State<UserProfileScreen>
         }
 
         final profile = state.profile;
+        final isNarrowOrLargeFont =
+            MediaQuery.sizeOf(context).width < 380 ||
+            MediaQuery.textScalerOf(context).scale(14) > 18;
 
         return Scaffold(
           backgroundColor: AppColors.background,
@@ -83,6 +90,8 @@ class _UserProfileScreenState extends State<UserProfileScreen>
             elevation: 0,
             title: Text(
               'Hồ sơ của tôi',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: AppTypography.titleMedium.copyWith(
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
@@ -91,11 +100,11 @@ class _UserProfileScreenState extends State<UserProfileScreen>
             actions: [
               IconButton(
                 icon: const Icon(
-                  Icons.admin_panel_settings_outlined,
-                  color: AppColors.secondary,
+                  Icons.bookmark_border,
+                  color: AppColors.textPrimary,
                 ),
-                tooltip: 'Trung tâm Quản trị Admin (AD-01 → AD-08)',
-                onPressed: () => context.push('/admin'),
+                tooltip: 'Bài viết đã lưu (FO-09)',
+                onPressed: () => context.push('/saved-posts'),
               ),
               IconButton(
                 icon: const Icon(
@@ -124,8 +133,8 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                           children: [
                             CircleAvatar(
                               radius: 46,
-                              backgroundColor: AppColors.primary.withOpacity(
-                                0.15,
+                              backgroundColor: AppColors.primary.withValues(
+                                alpha: 0.15,
                               ),
                               backgroundImage: profile.avatarUrl.isEmpty
                                   ? null
@@ -158,19 +167,23 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(
-                              profile.name,
-                              style: AppTypography.headlineSmall.copyWith(
-                                fontWeight: FontWeight.bold,
+                            Flexible(
+                              child: Text(
+                                profile.name,
+                                textAlign: TextAlign.center,
+                                style: AppTypography.headlineSmall.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
-                            const SizedBox(width: 6),
-                            if (profile.isVerified)
+                            if (profile.isVerified) ...[
+                              const SizedBox(width: 6),
                               const Icon(
                                 Icons.verified,
                                 size: 20,
                                 color: AppColors.accent,
                               ),
+                            ],
                           ],
                         ),
                         const SizedBox(height: 4),
@@ -178,6 +191,7 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                         // MSSV & Cohort & Campus
                         Text(
                           'MSSV: ${profile.studentId} • ${profile.cohort} • ${profile.campus}',
+                          textAlign: TextAlign.center,
                           style: AppTypography.bodySmall.copyWith(
                             color: AppColors.textSecondary,
                           ),
@@ -191,11 +205,12 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.secondary.withOpacity(0.1),
+                            color: AppColors.secondary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Text(
                             profile.major,
+                            textAlign: TextAlign.center,
                             style: AppTypography.labelMedium.copyWith(
                               color: AppColors.secondary,
                               fontWeight: FontWeight.bold,
@@ -225,7 +240,11 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                               child: ElevatedButton.icon(
                                 onPressed: () => context.push('/edit-profile'),
                                 icon: const Icon(Icons.edit_outlined, size: 18),
-                                label: const Text('Chỉnh sửa hồ sơ'),
+                                label: const Text(
+                                  'Chỉnh sửa hồ sơ',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.primary,
                                   foregroundColor: Colors.white,
@@ -271,23 +290,31 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                         Container(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           decoration: BoxDecoration(
-                            color: AppColors.surfaceVariant.withOpacity(0.5),
+                            color: AppColors.surfaceVariant.withValues(
+                              alpha: 0.5,
+                            ),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceAround,
                             children: [
-                              _buildStatItem(
-                                '${profile.totalPosts}',
-                                'Bài viết',
+                              Expanded(
+                                child: _buildStatItem(
+                                  '${profile.totalPosts}',
+                                  'Bài viết',
+                                ),
                               ),
-                              _buildStatItem(
-                                '${profile.totalConnections}',
-                                'Kết nối',
+                              Expanded(
+                                child: _buildStatItem(
+                                  '${profile.totalConnections}',
+                                  'Kết nối',
+                                ),
                               ),
-                              _buildStatItem(
-                                '${profile.mentoringSessions}',
-                                'Buổi Mentoring',
+                              Expanded(
+                                child: _buildStatItem(
+                                  '${profile.mentoringSessions}',
+                                  'Buổi Mentoring',
+                                ),
                               ),
                             ],
                           ),
@@ -301,6 +328,10 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                   delegate: _SliverAppBarDelegate(
                     TabBar(
                       controller: _tabController,
+                      isScrollable: isNarrowOrLargeFont,
+                      tabAlignment: isNarrowOrLargeFont
+                          ? TabAlignment.start
+                          : TabAlignment.fill,
                       labelColor: AppColors.primary,
                       unselectedLabelColor: AppColors.textSecondary,
                       indicatorColor: AppColors.primary,
@@ -364,6 +395,8 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                           post: post,
                           onLike: () =>
                               context.read<FeedCubit>().toggleLike(post.id),
+                          onBookmark: () =>
+                              context.read<FeedCubit>().toggleBookmark(post.id),
                           onTap: () => context.push('/post-detail/${post.id}'),
                         );
                       },
@@ -433,7 +466,9 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                                 vertical: 6,
                               ),
                               decoration: BoxDecoration(
-                                color: AppColors.secondary.withOpacity(0.08),
+                                color: AppColors.secondary.withValues(
+                                  alpha: 0.08,
+                                ),
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: Text(
@@ -518,6 +553,8 @@ class _UserProfileScreenState extends State<UserProfileScreen>
         const SizedBox(height: 2),
         Text(
           label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: AppTypography.labelSmall.copyWith(
             color: AppColors.textSecondary,
           ),
@@ -531,22 +568,27 @@ class _UserProfileScreenState extends State<UserProfileScreen>
       children: [
         Icon(icon, size: 20, color: AppColors.secondary),
         const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppColors.textSecondary,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                ),
               ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              value,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-            ),
-          ],
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -574,6 +616,6 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
-    return false;
+    return true;
   }
 }
