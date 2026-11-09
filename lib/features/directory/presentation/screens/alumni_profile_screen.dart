@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:alumni_connect/core/theme/app_colors.dart';
@@ -6,11 +7,90 @@ import 'package:alumni_connect/features/directory/data/models/alumni_model.dart'
 import 'package:alumni_connect/core/network/alumni_api.dart';
 import 'package:alumni_connect/features/directory/data/directory_repository.dart';
 import 'package:alumni_connect/features/chat/presentation/cubit/chat_cubit.dart';
+import 'package:alumni_connect/features/profile/presentation/cubit/profile_cubit.dart';
 
 class AlumniProfileScreen extends StatelessWidget {
   final String alumniId;
 
   const AlumniProfileScreen({super.key, required this.alumniId});
+
+  Future<void> _blockAlumni(BuildContext context, AlumniModel alumni) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Chặn ${alumni.name}?'),
+        content: const Text(
+          'Bạn sẽ hạn chế các tương tác không mong muốn với tài khoản này.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Hủy'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Chặn'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    final error = await context.read<ProfileCubit>().blockUser(alumni.id);
+    if (!context.mounted) return;
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Đã chặn ${alumni.name}.')),
+    );
+    context.pop();
+  }
+
+  Future<void> _openCalendarLink(
+    BuildContext context,
+    AlumniModel alumni,
+  ) async {
+    final link = alumni.calendarUrl.trim();
+    if (link.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Thành viên này chưa cập nhật link Google Calendar công khai.',
+          ),
+        ),
+      );
+      return;
+    }
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Lịch hẹn Google Calendar (US-11)'),
+        content: SelectableText(link),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Đóng'),
+          ),
+          FilledButton.icon(
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: link));
+              if (dialogContext.mounted) Navigator.pop(dialogContext);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Đã sao chép link Google Calendar.'),
+                  ),
+                );
+              }
+            },
+            icon: const Icon(Icons.copy, size: 16),
+            label: const Text('Sao chép link'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +121,13 @@ class AlumniProfileScreen extends StatelessWidget {
   }
 
   Widget _buildProfile(BuildContext context, AlumniModel alumni) {
+    final hasContactInfo =
+        alumni.email.isNotEmpty ||
+        alumni.phoneNumber.isNotEmpty ||
+        alumni.linkedInUrl.isNotEmpty ||
+        alumni.gitHubUrl.isNotEmpty ||
+        alumni.calendarUrl.isNotEmpty;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -49,7 +136,22 @@ class AlumniProfileScreen extends StatelessWidget {
           onPressed: () => context.pop(),
         ),
         title: const Text('Hồ sơ Cựu sinh viên'),
-        actions: [],
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              if (value == 'block') {
+                _blockAlumni(context, alumni);
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem<String>(
+                value: 'block',
+                child: Text('Chặn người dùng (US-10)'),
+              ),
+            ],
+          ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.only(bottom: 90),
@@ -193,6 +295,31 @@ class AlumniProfileScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
+
+          if (hasContactInfo) ...[
+            _buildSectionCard(
+              title: 'Thông tin liên hệ công khai (US-09, US-11)',
+              content: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (alumni.email.isNotEmpty)
+                    _buildContactRow(Icons.email_outlined, alumni.email),
+                  if (alumni.phoneNumber.isNotEmpty)
+                    _buildContactRow(Icons.phone_outlined, alumni.phoneNumber),
+                  if (alumni.linkedInUrl.isNotEmpty)
+                    _buildContactRow(Icons.link, alumni.linkedInUrl),
+                  if (alumni.gitHubUrl.isNotEmpty)
+                    _buildContactRow(Icons.code, alumni.gitHubUrl),
+                  if (alumni.calendarUrl.isNotEmpty)
+                    _buildContactRow(
+                      Icons.calendar_today_outlined,
+                      alumni.calendarUrl,
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
         ],
       ),
       bottomSheet: Container(
@@ -211,10 +338,11 @@ class AlumniProfileScreen extends StatelessWidget {
                   );
                   if (context.mounted) context.push('/chat/$id');
                 } catch (error) {
-                  if (context.mounted)
+                  if (context.mounted) {
                     ScaffoldMessenger.of(
                       context,
                     ).showSnackBar(SnackBar(content: Text(error.toString())));
+                  }
                 }
               },
               style: OutlinedButton.styleFrom(
@@ -232,11 +360,7 @@ class AlumniProfileScreen extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Backend hiện chưa có API đặt lịch mentor.'),
-                  ),
-                ),
+                onPressed: () => _openCalendarLink(context, alumni),
                 icon: const Icon(Icons.calendar_month),
                 label: const Text(
                   'Đặt lịch Mentoring 1-1',
@@ -254,6 +378,24 @@ class AlumniProfileScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildContactRow(IconData icon, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: AppColors.fptBlue),
+          const SizedBox(width: 8),
+          Expanded(
+            child: SelectableText(
+              value,
+              style: const TextStyle(fontSize: 13, color: Color(0xFF334155)),
+            ),
+          ),
+        ],
       ),
     );
   }

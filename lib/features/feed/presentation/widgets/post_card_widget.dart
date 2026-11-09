@@ -5,12 +5,14 @@ import 'package:alumni_connect/features/feed/data/models/feed_models.dart';
 class PostCardWidget extends StatelessWidget {
   final PostItem post;
   final VoidCallback onLike;
+  final VoidCallback? onBookmark;
   final VoidCallback? onTap;
 
   const PostCardWidget({
     super.key,
     required this.post,
     required this.onLike,
+    this.onBookmark,
     this.onTap,
   });
 
@@ -51,7 +53,10 @@ class PostCardWidget extends StatelessWidget {
                       onBackgroundImageError: (_, __) {},
                       child: Text(
                         post.authorName.isNotEmpty ? post.authorName[0] : 'U',
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -95,7 +100,10 @@ class PostCardWidget extends StatelessWidget {
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.secondary.withOpacity(0.08),
                         borderRadius: BorderRadius.circular(12),
@@ -155,7 +163,10 @@ class PostCardWidget extends StatelessWidget {
                         Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
                               decoration: BoxDecoration(
                                 color: AppColors.fptOrange.withOpacity(0.15),
                                 borderRadius: BorderRadius.circular(6),
@@ -171,7 +182,10 @@ class PostCardWidget extends StatelessWidget {
                             ),
                             const SizedBox(width: 6),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(6),
@@ -179,7 +193,10 @@ class PostCardWidget extends StatelessWidget {
                               ),
                               child: const Text(
                                 'Fresher / Junior',
-                                style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.textSecondary,
+                                ),
                               ),
                             ),
                           ],
@@ -228,7 +245,11 @@ class PostCardWidget extends StatelessWidget {
                             color: Colors.white.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Icon(Icons.picture_as_pdf, color: Colors.white, size: 24),
+                          child: const Icon(
+                            Icons.picture_as_pdf,
+                            color: Colors.white,
+                            size: 24,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -291,37 +312,63 @@ class PostCardWidget extends StatelessWidget {
                       icon: Icon(
                         post.isLiked ? Icons.favorite : Icons.favorite_border,
                         size: 18,
-                        color: post.isLiked ? AppColors.fptOrange : AppColors.textSecondary,
+                        color: post.isLiked
+                            ? AppColors.fptOrange
+                            : AppColors.textSecondary,
                       ),
                       label: Text(
                         '${post.likes}',
                         style: TextStyle(
-                          color: post.isLiked ? AppColors.fptOrange : AppColors.textSecondary,
+                          color: post.isLiked
+                              ? AppColors.fptOrange
+                              : AppColors.textSecondary,
                           fontSize: 13,
-                          fontWeight: post.isLiked ? FontWeight.bold : FontWeight.normal,
+                          fontWeight: post.isLiked
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                         ),
                       ),
                     ),
                     TextButton.icon(
                       onPressed: onTap,
-                      icon: const Icon(Icons.chat_bubble_outline, size: 18, color: AppColors.textSecondary),
+                      icon: const Icon(
+                        Icons.chat_bubble_outline,
+                        size: 18,
+                        color: AppColors.textSecondary,
+                      ),
                       label: Text(
                         '${post.comments}',
-                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                     TextButton.icon(
                       onPressed: null,
-                      icon: const Icon(Icons.share_outlined, size: 18, color: AppColors.textSecondary),
+                      icon: const Icon(
+                        Icons.share_outlined,
+                        size: 18,
+                        color: AppColors.textSecondary,
+                      ),
                       label: Text(
                         '${post.shares}',
-                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
-                    Icon(
-                      post.isSaved ? Icons.bookmark : Icons.bookmark_border,
-                      size: 20,
-                      color: post.isSaved ? AppColors.fptOrange : AppColors.textSecondary,
+                    IconButton(
+                      tooltip: 'Lưu bài viết (FO-09)',
+                      onPressed: onBookmark,
+                      icon: Icon(
+                        post.isSaved ? Icons.bookmark : Icons.bookmark_border,
+                        size: 20,
+                        color: post.isSaved
+                            ? AppColors.fptOrange
+                            : AppColors.textSecondary,
+                      ),
                     ),
                   ],
                 ),

@@ -1,3 +1,4 @@
+import 'package:signalr_netcore/signalr_client.dart';
 import 'package:alumni_connect/core/network/alumni_api.dart';
 import 'package:alumni_connect/features/feed/data/models/feed_models.dart';
 
@@ -12,6 +13,91 @@ class FeedPage {
 class FeedRepository {
   FeedRepository(this.api);
   final AlumniApi api;
+  HubConnection? _forumHub;
+
+  Future<List<String>> getCategories() async {
+    final rows = await api.forum.getList('/api/v1/categories');
+    return rows
+        .whereType<Map<String, dynamic>>()
+        .map((c) => '${c['name'] ?? ''}'.trim())
+        .where((name) => name.isNotEmpty)
+        .toList();
+  }
+
+  Future<void> connectForumHub({
+    void Function(PostItem post)? onNewPost,
+    void Function(CommentItem comment)? onNewComment,
+    void Function(String postId, bool isLiked)? onReaction,
+  }) async {
+    try {
+      if (_forumHub == null) {
+        final hubUrl = '${api.forum.baseUrl}/hubs/forum';
+        final options = HttpConnectionOptions(
+          accessTokenFactory: () async => await api.tokens.accessToken ?? '',
+        );
+        _forumHub = HubConnectionBuilder()
+            .withUrl(hubUrl, options: options)
+            .withAutomaticReconnect()
+            .build();
+        await _forumHub!.start();
+      }
+      final hub = _forumHub!;
+      if (onNewPost != null) {
+        hub.off('ReceiveNewPost');
+        hub.on('ReceiveNewPost', (args) {
+          if (args == null || args.isEmpty || args.first is! Map) return;
+          onNewPost(_post(Map<String, dynamic>.from(args.first as Map)));
+        });
+      }
+      if (onNewComment != null) {
+        hub.off('ReceiveComment');
+        hub.on('ReceiveComment', (args) {
+          if (args == null || args.isEmpty || args.first is! Map) return;
+          onNewComment(_comment(Map<String, dynamic>.from(args.first as Map)));
+        });
+      }
+      if (onReaction != null) {
+        hub.off('ReceiveReaction');
+        hub.on('ReceiveReaction', (args) {
+          if (args == null || args.isEmpty || args.first is! Map) return;
+          final data = Map<String, dynamic>.from(args.first as Map);
+          final postId = '${data['postId'] ?? data['PostId'] ?? ''}';
+          final isLiked =
+              (data['isLiked'] ?? data['IsLiked']) as bool? ?? false;
+          if (postId.isNotEmpty) onReaction(postId, isLiked);
+        });
+      }
+    } catch (_) {
+      // Keep REST forum usable when SignalR is unavailable.
+    }
+  }
+
+  Future<void> watchPost(
+    String postId, {
+    required void Function(CommentItem comment) onNewComment,
+    required void Function(String postId, bool isLiked) onReaction,
+  }) async {
+    try {
+      await connectForumHub(onNewComment: onNewComment, onReaction: onReaction);
+      await _forumHub?.invoke('JoinPostGroup', args: <Object>[postId]);
+    } catch (_) {}
+  }
+
+  Future<void> unwatchPost(String postId) async {
+    try {
+      await _forumHub?.invoke('LeavePostGroup', args: <Object>[postId]);
+    } catch (_) {}
+  }
+
+  Future<void> disconnectForumHub() async {
+    final hub = _forumHub;
+    _forumHub = null;
+    if (hub != null) {
+      try {
+        await hub.stop();
+      } catch (_) {}
+    }
+  }
 
   Future<FeedPage> getFeed({
     int page = 1,

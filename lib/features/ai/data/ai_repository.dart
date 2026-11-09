@@ -21,8 +21,9 @@ class AiRepository {
           (row) => CitationSource(
             title: '${row['sourceTitle'] ?? ''}',
             author: '${row['section'] ?? row['programCode'] ?? ''}',
-            postId: '',
+            postId: '${row['postId'] ?? ''}',
             timeAgo: '',
+            snippet: '${row['snippet'] ?? ''}',
           ),
         )
         .toList();
@@ -60,8 +61,9 @@ class AiRepository {
           (value) => CitationSource(
             title: '${value['sourceTitle'] ?? ''}',
             author: '${value['section'] ?? value['programCode'] ?? ''}',
-            postId: '',
+            postId: '${value['postId'] ?? ''}',
             timeAgo: '',
+            snippet: '${value['snippet'] ?? ''}',
           ),
         )
         .toList();
@@ -107,6 +109,7 @@ class AiRepository {
         completedSessions: 0,
         skills: skills,
         bio: '${mentor['bio'] ?? ''}',
+        email: '${mentor['email'] ?? ''}',
       );
     }).toList();
   }

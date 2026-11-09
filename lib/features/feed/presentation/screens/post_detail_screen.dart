@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -24,6 +26,25 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
     super.initState();
     _repository = context.read<FeedCubit>().repository;
     _data = _load();
+    unawaited(
+      _repository.watchPost(
+        widget.postId,
+        onNewComment: (_) {
+          if (mounted) {
+            setState(() {
+              _data = _load();
+            });
+          }
+        },
+        onReaction: (postId, _) {
+          if (mounted && postId == widget.postId) {
+            setState(() {
+              _data = _load();
+            });
+          }
+        },
+      ),
+    );
   }
 
   Future<(PostItem, List<CommentItem>)> _load() async => (
@@ -191,6 +212,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
 
   @override
   void dispose() {
+    unawaited(_repository.unwatchPost(widget.postId));
     _commentController.dispose();
     super.dispose();
   }
@@ -250,58 +272,79 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      TextButton.icon(
+                      IconButton(
                         onPressed: () async {
                           try {
                             await _repository.toggleLike(post.id);
-                            setState(() {
-                              _data = _load();
-                            });
+                            if (mounted) {
+                              setState(() {
+                                _data = _load();
+                              });
+                            }
                           } catch (e) {
                             if (mounted)
-                              ScaffoldMessenger.of(context)
-                                  .showSnackBar(SnackBar(content: Text('$e')));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Không thể thích: $e')),
+                              );
                           }
                         },
                         icon: Icon(
                           post.isLiked ? Icons.favorite : Icons.favorite_border,
                         ),
-                        label: Text('${post.likes}'),
                       ),
-                      TextButton.icon(
+                      Text('${post.likes}'),
+                      const SizedBox(width: 12),
+                      IconButton(
                         onPressed: () async {
                           try {
                             await _repository.toggleBookmark(post.id);
-                            if (mounted)
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Đã cập nhật bài viết đã lưu.'),
-                                ),
-                              );
+                            if (mounted) {
+                              setState(() {
+                                _data = _load();
+                              });
+                            }
                           } catch (e) {
                             if (mounted)
-                              ScaffoldMessenger.of(context)
-                                  .showSnackBar(SnackBar(content: Text('$e')));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Không thể lưu: $e')),
+                              );
                           }
                         },
                         icon: Icon(
                           post.isSaved ? Icons.bookmark : Icons.bookmark_border,
                         ),
-                        label: const Text('Lưu'),
+                      ),
+                      const Spacer(),
+                      TextButton(
+                        onPressed: () =>
+                            context.push('/edit-post/${post.id}'),
+                        child: const Text('Sửa'),
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          try {
+                            await _repository.deletePost(post.id);
+                            if (context.mounted) {
+                              context.read<FeedCubit>().loadFeed();
+                              context.pop();
+                            }
+                          } catch (e) {
+                            if (context.mounted)
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Không xóa được: $e')),
+                              );
+                          }
+                        },
+                        child: const Text('Xóa'),
                       ),
                     ],
                   ),
                   const Divider(),
-                  Text(
-                    'Bình luận (${comments.length})',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
                   ...comments.map(
                     (c) => _CommentTile(
                       comment: c,
                       currentUserId: _currentUserId,
-                      onReply: (comment) =>
-                          setState(() => _replyTo = comment.id),
+                      onReply: (id) => setState(() => _replyTo = id),
                       onReport: (comment) => _reportPost(
                         targetType: 'Comment',
                         targetId: comment.id,
@@ -320,7 +363,9 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                           if (mounted)
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Không thể chọn câu trả lời: $e'),
+                                content: Text(
+                                  'Không thể đánh dấu câu trả lời: $e',
+                                ),
                               ),
                             );
                         }
@@ -330,34 +375,32 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                 ],
               ),
             ),
+            if (_replyTo != null)
+              MaterialBanner(
+                content: const Text('Đang trả lời bình luận'),
+                actions: [
+                  TextButton(
+                    onPressed: () => setState(() => _replyTo = null),
+                    child: const Text('Hủy'),
+                  ),
+                ],
+              ),
             SafeArea(
-              top: false,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+                padding: const EdgeInsets.all(8),
                 child: Row(
                   children: [
                     Expanded(
                       child: TextField(
                         controller: _commentController,
-                        minLines: 1,
-                        maxLines: 4,
-                        decoration: InputDecoration(
-                          hintText: _replyTo == null
-                              ? 'Viết bình luận…'
-                              : 'Đang trả lời bình luận…',
-                          border: OutlineInputBorder(),
+                        decoration: const InputDecoration(
+                          hintText: 'Viết bình luận...',
                         ),
                       ),
                     ),
                     IconButton(
                       onPressed: _sending ? null : _sendComment,
-                      icon: _sending
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.send),
+                      icon: const Icon(Icons.send),
                     ),
                   ],
                 ),
@@ -382,39 +425,45 @@ class _CommentTile extends StatelessWidget {
   });
   final CommentItem comment;
   final String? currentUserId;
-  final ValueChanged<CommentItem> onReply;
+  final ValueChanged<String> onReply;
   final Future<void> Function(CommentItem) onAccept;
   final ValueChanged<CommentItem> onReport;
   final ValueChanged<CommentItem> onEdit;
   final ValueChanged<CommentItem> onDelete;
+
+  bool get _isOwner =>
+      currentUserId != null &&
+      currentUserId!.isNotEmpty &&
+      comment.authorId == currentUserId;
+
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 12),
+    padding: const EdgeInsets.only(bottom: 12),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          comment.authorName,
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-        Text(comment.content),
         if (comment.isAcceptedAnswer)
           const Text(
-            '✓ Câu trả lời được chấp nhận',
-            style: TextStyle(color: Colors.green, fontWeight: FontWeight.w600),
+            'Câu trả lời được chấp nhận',
+            style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
           ),
+        Text(
+          '${comment.authorName} • ${comment.timeAgo}',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        Text(comment.content),
         Wrap(
           spacing: 4,
           children: [
             TextButton(
-              onPressed: () => onReply(comment),
+              onPressed: () => onReply(comment.id),
               child: const Text('Trả lời'),
             ),
             TextButton(
               onPressed: () => onReport(comment),
               child: const Text('Báo cáo'),
             ),
-            if (currentUserId != null && currentUserId == comment.authorId) ...[
+            if (_isOwner) ...[
               TextButton(
                 onPressed: () => onEdit(comment),
                 child: const Text('Sửa'),
@@ -427,22 +476,26 @@ class _CommentTile extends StatelessWidget {
             if (!comment.isAcceptedAnswer)
               TextButton(
                 onPressed: () => onAccept(comment),
-                child: const Text('Chọn làm câu trả lời'),
+                child: const Text('Chấp nhận'),
               ),
           ],
         ),
-        ...comment.replies.map(
-          (reply) => Padding(
-            padding: const EdgeInsets.only(left: 20, top: 8),
-            child: _CommentTile(
-              comment: reply,
-              currentUserId: currentUserId,
-              onReply: onReply,
-              onAccept: onAccept,
-              onReport: onReport,
-              onEdit: onEdit,
-              onDelete: onDelete,
-            ),
+        Padding(
+          padding: const EdgeInsets.only(left: 20),
+          child: Column(
+            children: comment.replies
+                .map(
+                  (r) => _CommentTile(
+                    comment: r,
+                    currentUserId: currentUserId,
+                    onReply: onReply,
+                    onAccept: onAccept,
+                    onReport: onReport,
+                    onEdit: onEdit,
+                    onDelete: onDelete,
+                  ),
+                )
+                .toList(),
           ),
         ),
       ],

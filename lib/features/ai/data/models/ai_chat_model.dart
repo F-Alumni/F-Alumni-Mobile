@@ -3,12 +3,14 @@ class CitationSource {
   final String author;
   final String postId;
   final String timeAgo;
+  final String snippet;
 
   const CitationSource({
     required this.title,
     required this.author,
     required this.postId,
     required this.timeAgo,
+    this.snippet = '',
   });
 }
 
