@@ -16,6 +16,25 @@ class DirectoryScreen extends StatelessWidget {
 class _DirectoryContent extends StatelessWidget {
   const _DirectoryContent();
 
+  static const _campusChips = <String, String>{
+    '': 'Tất cả Campus',
+    'HCM': 'TP.HCM',
+    'HN': 'Hòa Lạc (HN)',
+    'DN': 'Đà Nẵng',
+    'CT': 'Cần Thơ',
+    'QN': 'Quy Nhơn',
+  };
+
+  static const _majorChips = <String, String>{
+    '': 'Tất cả Ngành',
+    'SE': 'Kỹ thuật phần mềm (SE)',
+    'AI': 'Trí tuệ nhân tạo (AI)',
+    'IA': 'An toàn thông tin (IA)',
+    'MKT': 'Marketing (MKT)',
+    'IB': 'Kinh doanh quốc tế (IB)',
+    'GD': 'Thiết kế đồ họa (GD)',
+  };
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -33,13 +52,14 @@ class _DirectoryContent extends StatelessWidget {
               ),
             ),
             Text(
-              'Danh sách thành viên từ User Service',
+              'Kết nối thành viên & Mentor FPTU (US-05, US-06)',
               style: TextStyle(fontSize: 11, color: AppColors.textMuted),
             ),
           ],
         ),
         actions: [
           IconButton(
+            tooltip: 'Lọc theo Campus & Ngành (US-06)',
             icon: const Icon(Icons.tune, size: 22),
             onPressed: () => _showFilters(context),
           ),
@@ -102,9 +122,12 @@ class _DirectoryContent extends StatelessWidget {
                           Icons.search,
                           color: AppColors.textMuted,
                         ),
-                        suffixIcon: const Icon(
-                          Icons.filter_list,
-                          color: AppColors.fptBlue,
+                        suffixIcon: IconButton(
+                          icon: const Icon(
+                            Icons.filter_list,
+                            color: AppColors.fptBlue,
+                          ),
+                          onPressed: () => _showFilters(context),
                         ),
                         filled: true,
                         fillColor: Colors.white,
@@ -179,11 +202,37 @@ class _DirectoryContent extends StatelessWidget {
                             ),
                           ),
                         ),
+                        if (state.campus.isNotEmpty) ...[
+                          const SizedBox(width: 8),
+                          InputChip(
+                            label: Text(
+                              'Campus: ${_campusChips[state.campus] ?? state.campus}',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            onDeleted: () => context
+                                .read<DirectoryCubit>()
+                                .setFilters(campus: '', major: state.major),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ],
+                        if (state.major.isNotEmpty) ...[
+                          const SizedBox(width: 8),
+                          InputChip(
+                            label: Text(
+                              'Ngành: ${_majorChips[state.major] ?? state.major}',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            onDeleted: () => context
+                                .read<DirectoryCubit>()
+                                .setFilters(campus: state.campus, major: ''),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ],
                       ],
                     ),
                   ),
 
-                  // 3. Mentor matching is provided by the AI service.
+                  // 3. Mentor matching banner
                   Container(
                     margin: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -191,6 +240,7 @@ class _DirectoryContent extends StatelessWidget {
                     ),
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
                       gradient: LinearGradient(
                         colors: [
                           AppColors.fptOrange.withValues(alpha: 0.12),
@@ -227,7 +277,7 @@ class _DirectoryContent extends StatelessWidget {
                               ),
                               SizedBox(height: 2),
                               Text(
-                                'Gợi ý mentor dùng API AI; lịch hẹn chưa có API.',
+                                'Kết nối 1-1 qua Chat hoặc xem link lịch hẹn Google Calendar trên hồ sơ.',
                                 style: TextStyle(
                                   fontSize: 11,
                                   color: AppColors.textSecondary,
@@ -240,15 +290,37 @@ class _DirectoryContent extends StatelessWidget {
                     ),
                   ),
 
-                  // 4. Alumni Card List
-                  ...state.alumni.map(
-                    (a) => AlumniCardWidget(
-                      alumni: a,
-                      onViewProfile: context
-                          .read<DirectoryCubit>()
-                          .trackAlumniOpened,
+                  // 4. Alumni Card List or Empty State
+                  if (state.alumni.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.all(40),
+                      child: Center(
+                        child: Column(
+                          children: const [
+                            Icon(
+                              Icons.people_outline,
+                              size: 48,
+                              color: AppColors.textMuted,
+                            ),
+                            SizedBox(height: 12),
+                            Text(
+                              'Không tìm thấy cựu sinh viên phù hợp với bộ lọc.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    ...state.alumni.map(
+                      (a) => AlumniCardWidget(
+                        alumni: a,
+                        onViewProfile: context
+                            .read<DirectoryCubit>()
+                            .trackAlumniOpened,
+                      ),
                     ),
-                  ),
                 ],
               ),
             );
@@ -261,51 +333,112 @@ class _DirectoryContent extends StatelessWidget {
   }
 
   Future<void> _showFilters(BuildContext context) async {
-    final campusController = TextEditingController();
-    final majorController = TextEditingController();
-    final filters = await showDialog<(String, String)>(
+    final cubit = context.read<DirectoryCubit>();
+    final current = cubit.state;
+    var selectedCampus = current is DirectoryLoaded ? current.campus : '';
+    var selectedMajor = current is DirectoryLoaded ? current.major : '';
+
+    final filters = await showModalBottomSheet<(String, String)>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Lọc danh bạ'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: campusController,
-              decoration: const InputDecoration(labelText: 'Campus'),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Lọc danh bạ Cựu sinh viên (US-06)',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        setSheetState(() {
+                          selectedCampus = '';
+                          selectedMajor = '';
+                        });
+                      },
+                      child: const Text('Xóa lọc'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Cơ sở FPTU (Campus)',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    for (final entry in _campusChips.entries)
+                      ChoiceChip(
+                        label: Text(entry.value),
+                        selected: selectedCampus == entry.key,
+                        onSelected: (_) =>
+                            setSheetState(() => selectedCampus = entry.key),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  'Chuyên ngành (Major)',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    for (final entry in _majorChips.entries)
+                      ChoiceChip(
+                        label: Text(entry.value),
+                        selected: selectedMajor == entry.key,
+                        onSelected: (_) =>
+                            setSheetState(() => selectedMajor = entry.key),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: () => Navigator.pop(sheetContext, (
+                      selectedCampus,
+                      selectedMajor,
+                    )),
+                    child: const Text('Áp dụng bộ lọc'),
+                  ),
+                ),
+              ],
             ),
-            TextField(
-              controller: majorController,
-              decoration: const InputDecoration(labelText: 'Ngành học'),
-            ),
-          ],
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Hủy'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, ('', '')),
-            child: const Text('Xóa lọc'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, (
-              campusController.text.trim(),
-              majorController.text.trim(),
-            )),
-            child: const Text('Áp dụng'),
-          ),
-        ],
       ),
     );
-    campusController.dispose();
-    majorController.dispose();
+
     if (filters != null && context.mounted) {
-      await context.read<DirectoryCubit>().setFilters(
-        campus: filters.$1,
-        major: filters.$2,
-      );
+      await cubit.setFilters(campus: filters.$1, major: filters.$2);
     }
   }
 }

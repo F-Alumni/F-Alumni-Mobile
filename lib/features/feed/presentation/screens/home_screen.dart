@@ -20,10 +20,161 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
 
+  static const _campusOptions = <String?, String>{
+    null: 'Mọi campus',
+    'FU-HL': 'Hòa Lạc',
+    'FU-DN': 'Đà Nẵng',
+    'FU-HCM': 'TP.HCM',
+    'FU-CT': 'Cần Thơ',
+    'FU-QN': 'Quy Nhơn',
+  };
+
+  static const _answeredOptions = <(bool?, String)>[
+    (null, 'Tất cả câu hỏi'),
+    (false, 'Chưa có câu trả lời'),
+    (true, 'Đã giải đáp'),
+  ];
+
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _showAdvancedFilters(BuildContext context) async {
+    final cubit = context.read<FeedCubit>();
+    await showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Bộ lọc & Sắp xếp bảng tin',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          cubit.selectCampus(null);
+                          cubit.selectAnswered(null);
+                          cubit.selectSort('latest');
+                          setSheetState(() {});
+                        },
+                        child: const Text('Đặt lại'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Cơ sở FPTU (FO-12)',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      for (final entry in _campusOptions.entries)
+                        ChoiceChip(
+                          label: Text(entry.value),
+                          selected: cubit.selectedCampus == entry.key,
+                          onSelected: (_) {
+                            cubit.selectCampus(entry.key);
+                            setSheetState(() {});
+                          },
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Trạng thái câu hỏi (FO-15, FO-16)',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      for (final option in _answeredOptions)
+                        ChoiceChip(
+                          label: Text(option.$2),
+                          selected: cubit.answeredFilter == option.$1,
+                          onSelected: (_) {
+                            cubit.selectAnswered(option.$1);
+                            setSheetState(() {});
+                          },
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Sắp xếp (FO-14)',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      ChoiceChip(
+                        label: const Text('Mới nhất'),
+                        selected: cubit.selectedSort == 'latest',
+                        onSelected: (_) {
+                          cubit.selectSort('latest');
+                          setSheetState(() {});
+                        },
+                      ),
+                      ChoiceChip(
+                        label: const Text('Phổ biến nhất'),
+                        selected: cubit.selectedSort == 'popular',
+                        onSelected: (_) {
+                          cubit.selectSort('popular');
+                          setSheetState(() {});
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: () => Navigator.pop(sheetContext),
+                      child: const Text('Áp dụng'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   @override
@@ -196,10 +347,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           }
 
           if (state is FeedLoaded) {
+            final cubit = context.read<FeedCubit>();
             final categories = state.categories;
             final displayPosts = state.filteredPosts
                 .take(remoteSettings.maxItemsDisplay)
                 .toList();
+            final activeFilterCount =
+                (cubit.selectedCampus != null ? 1 : 0) +
+                (cubit.answeredFilter != null ? 1 : 0) +
+                (cubit.selectedSort != 'latest' ? 1 : 0);
 
             return RefreshIndicator(
               color: AppColors.fptOrange,
@@ -350,18 +506,65 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 12),
 
-                    // 3. Category Filter Chips
+                    // 3. Compact Filter Button + Category Chips Row
                     SizedBox(
                       height: 38,
                       child: ListView.separated(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         scrollDirection: Axis.horizontal,
-                        itemCount: categories.length,
+                        itemCount: categories.length + 1,
                         separatorBuilder: (_, _) => const SizedBox(width: 8),
                         itemBuilder: (context, index) {
-                          final cat = categories[index];
+                          if (index == 0) {
+                            final hasFilter = activeFilterCount > 0;
+                            return GestureDetector(
+                              onTap: () => _showAdvancedFilters(context),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: hasFilter
+                                      ? AppColors.fptBlue
+                                      : Colors.white,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: hasFilter
+                                        ? AppColors.fptBlue
+                                        : AppColors.border,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.tune,
+                                      size: 15,
+                                      color: hasFilter
+                                          ? Colors.white
+                                          : AppColors.fptBlue,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      hasFilter
+                                          ? 'Bộ lọc ($activeFilterCount)'
+                                          : 'Bộ lọc',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: hasFilter
+                                            ? Colors.white
+                                            : AppColors.fptBlue,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }
+                          final cat = categories[index - 1];
                           final isActive = state.selectedCategory == cat;
                           return GestureDetector(
                             onTap: () =>
@@ -399,82 +602,50 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         },
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      height: 34,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
+
+                    if (activeFilterCount > 0) ...[
+                      const SizedBox(height: 8),
+                      Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
-                        children: [
-                          for (final entry in const <String?, String>{
-                            null: 'Mọi campus',
-                            'FU-HL': 'Hòa Lạc',
-                            'FU-DN': 'Đà Nẵng',
-                            'FU-HCM': 'TP.HCM',
-                            'FU-CT': 'Cần Thơ',
-                            'FU-QN': 'Quy Nhơn',
-                          }.entries)
-                            Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: ChoiceChip(
-                                label: Text(entry.value),
-                                selected:
-                                    context.read<FeedCubit>().selectedCampus ==
-                                    entry.key,
-                                onSelected: (_) => context
-                                    .read<FeedCubit>()
-                                    .selectCampus(entry.key),
+                        child: Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          children: [
+                            if (cubit.selectedCampus != null)
+                              InputChip(
+                                label: Text(
+                                  _campusOptions[cubit.selectedCampus] ??
+                                      cubit.selectedCampus!,
+                                  style: const TextStyle(fontSize: 11),
+                                ),
+                                onDeleted: () => cubit.selectCampus(null),
+                                visualDensity: VisualDensity.compact,
                               ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    SizedBox(
-                      height: 34,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        children: [
-                          for (final option in const <(bool?, String)>[
-                            (null, 'Tất cả câu hỏi'),
-                            (false, 'Chưa có câu trả lời'),
-                            (true, 'Đã giải đáp'),
-                          ])
-                            Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: ChoiceChip(
-                                label: Text(option.$2),
-                                selected:
-                                    context.read<FeedCubit>().answeredFilter ==
-                                    option.$1,
-                                onSelected: (_) => context
-                                    .read<FeedCubit>()
-                                    .selectAnswered(option.$1),
+                            if (cubit.answeredFilter != null)
+                              InputChip(
+                                label: Text(
+                                  cubit.answeredFilter!
+                                      ? 'Đã giải đáp'
+                                      : 'Chưa có câu trả lời',
+                                  style: const TextStyle(fontSize: 11),
+                                ),
+                                onDeleted: () => cubit.selectAnswered(null),
+                                visualDensity: VisualDensity.compact,
                               ),
-                            ),
-                          const SizedBox(width: 8),
-                          ChoiceChip(
-                            label: const Text('Mới nhất'),
-                            selected:
-                                context.read<FeedCubit>().selectedSort ==
-                                'latest',
-                            onSelected: (_) =>
-                                context.read<FeedCubit>().selectSort('latest'),
-                          ),
-                          const SizedBox(width: 8),
-                          ChoiceChip(
-                            label: const Text('Phổ biến'),
-                            selected:
-                                context.read<FeedCubit>().selectedSort ==
-                                'popular',
-                            onSelected: (_) =>
-                                context.read<FeedCubit>().selectSort('popular'),
-                          ),
-                        ],
+                            if (cubit.selectedSort == 'popular')
+                              InputChip(
+                                label: const Text(
+                                  'Phổ biến nhất',
+                                  style: TextStyle(fontSize: 11),
+                                ),
+                                onDeleted: () => cubit.selectSort('latest'),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
+                    ],
+                    const SizedBox(height: 6),
                   ] else ...[
                     Padding(
                       padding: const EdgeInsets.symmetric(
