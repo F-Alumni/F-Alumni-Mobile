@@ -20,14 +20,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
 
-  static const List<String> categories = [
-    'Tất cả',
-    'CNTT & Phần mềm',
-    'Việc làm & Referral',
-    'Kinh tế & Marketing',
-    'Hỏi đáp Mentor',
-  ];
-
   @override
   void dispose() {
     _searchController.dispose();
@@ -204,6 +196,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           }
 
           if (state is FeedLoaded) {
+            final categories = state.categories;
             final displayPosts = state.filteredPosts
                 .take(remoteSettings.maxItemsDisplay)
                 .toList();
@@ -526,6 +519,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         post: post,
                         onLike: () =>
                             context.read<FeedCubit>().toggleLike(post.id),
+                        onBookmark: () {
+                          context.read<FeedCubit>().toggleBookmark(post.id);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                post.isSaved
+                                    ? 'Đã bỏ lưu bài viết.'
+                                    : 'Đã lưu bài viết vào danh sách (FO-09).',
+                              ),
+                              duration: const Duration(seconds: 1),
+                            ),
+                          );
+                        },
                         onTap: () {
                           context.read<FeedCubit>().trackPostOpened();
                           context.push('/post-detail/${post.id}');

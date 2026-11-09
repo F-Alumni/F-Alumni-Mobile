@@ -18,16 +18,26 @@ class FeedFailure extends FeedState {
 }
 
 class FeedLoaded extends FeedState {
+  static const List<String> defaultCategories = [
+    'Tất cả',
+    'CNTT & Phần mềm',
+    'Việc làm & Referral',
+    'Kinh tế & Marketing',
+    'Hỏi đáp Mentor',
+  ];
+
   final List<MentorStory> stories;
   final List<PostItem> posts;
   final String selectedCategory;
   final String searchQuery;
+  final List<String> categories;
 
   FeedLoaded({
     required this.stories,
     required this.posts,
     required this.selectedCategory,
     this.searchQuery = '',
+    this.categories = defaultCategories,
   });
 
   List<PostItem> get filteredPosts {
@@ -50,12 +60,14 @@ class FeedLoaded extends FeedState {
     List<PostItem>? posts,
     String? selectedCategory,
     String? searchQuery,
+    List<String>? categories,
   }) {
     return FeedLoaded(
       stories: stories ?? this.stories,
       posts: posts ?? this.posts,
       selectedCategory: selectedCategory ?? this.selectedCategory,
       searchQuery: searchQuery ?? this.searchQuery,
+      categories: categories ?? this.categories,
     );
   }
 }
@@ -71,6 +83,8 @@ class FeedCubit extends Cubit<FeedState> {
   String? _campus;
   String _sort = 'latest';
   bool? _answered;
+  List<String> _categories = FeedLoaded.defaultCategories;
+  bool _hubConnected = false;
 
   void trackPostOpened() {
     final analytics = analyticsService;
@@ -91,9 +105,38 @@ class FeedCubit extends Cubit<FeedState> {
     );
   }
 
+  Future<void> _ensureCategoriesAndHub() async {
+    if (_categories == FeedLoaded.defaultCategories) {
+      try {
+        final remote = await repository.getCategories();
+        if (remote.isNotEmpty) {
+          final merged = <String>{
+            ...FeedLoaded.defaultCategories,
+            ...remote,
+          }.toList();
+          _categories = merged;
+        }
+      } catch (_) {}
+    }
+    if (!_hubConnected) {
+      _hubConnected = true;
+      unawaited(
+        repository.connectForumHub(
+          onNewPost: (newPost) {
+            final current = state;
+            if (current is! FeedLoaded) return;
+            if (current.posts.any((p) => p.id == newPost.id)) return;
+            emit(current.copyWith(posts: [newPost, ...current.posts]));
+          },
+        ),
+      );
+    }
+  }
+
   Future<void> loadFeed() async {
     emit(FeedLoading());
     try {
+      unawaited(_ensureCategoriesAndHub());
       final page = await repository.getFeed(
         search: _search,
         postType: _postType(_category),
@@ -108,6 +151,7 @@ class FeedCubit extends Cubit<FeedState> {
           posts: page.items,
           selectedCategory: _category,
           searchQuery: _search,
+          categories: _categories,
         ),
       );
     } catch (e) {
@@ -182,6 +226,35 @@ class FeedCubit extends Cubit<FeedState> {
     }
   }
 
+  Future<void> toggleBookmark(String postId) async {
+    if (state is FeedLoaded) {
+      final currentState = state as FeedLoaded;
+      final matches = currentState.posts.where((p) => p.id == postId);
+      final existing = matches.isEmpty ? null : matches.first;
+      if (existing == null) return;
+      final desired = !existing.isSaved;
+      final optimistic = currentState.posts
+          .map((post) => post.id == postId ? post.copyWith(isSaved: desired) : post)
+          .toList();
+      emit(currentState.copyWith(posts: optimistic));
+      try {
+        final actual = await repository.toggleBookmark(postId);
+        final latest = state;
+        if (latest is FeedLoaded) {
+          emit(
+            latest.copyWith(
+              posts: latest.posts
+                  .map((p) => p.id == postId ? p.copyWith(isSaved: actual) : p)
+                  .toList(),
+            ),
+          );
+        }
+      } catch (_) {
+        emit(currentState);
+      }
+    }
+  }
+
   void searchPosts(String query) {
     _search = query;
     if (state is FeedLoaded) {
@@ -237,13 +310,17 @@ class FeedCubit extends Cubit<FeedState> {
 
   String? _postType(String category) => switch (category) {
     'Hỏi đáp Mentor' || 'Hỏi đáp & Thảo luận' => 'Question',
-    'Việc làm & Referral' || 'Cơ hội việc làm / Thực tập' => 'Recruitment',
+    'Việc làm & Referral' ||
+    'Cơ hội việc làm / Thực tập' ||
+    'Career' => 'Recruitment',
     _ => null,
   };
 
   String? _major(String category) => switch (category) {
-    'CNTT & Phần mềm' => 'SE',
+    'CNTT & Phần mềm' || 'Software Engineering' => 'SE',
     'Kinh tế & Marketing' => 'MKT',
+    'Artificial Intelligence' || 'AI' => 'AI',
+    'Information Assurance' || 'Security' => 'IA',
     _ => null,
   };
 }

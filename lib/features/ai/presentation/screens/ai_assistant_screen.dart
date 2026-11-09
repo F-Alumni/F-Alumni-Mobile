@@ -53,6 +53,71 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
     _scrollToBottom();
   }
 
+  void _openCitation(CitationSource src) {
+    if (src.postId.trim().isNotEmpty) {
+      context.push('/post-detail/${src.postId.trim()}');
+      return;
+    }
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.library_books_outlined,
+                    color: AppColors.secondary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      src.title.isEmpty ? 'Nguồn tham khảo FPTU' : src.title,
+                      style: AppTypography.titleSmall.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (src.author.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  'Chuyên mục / Nguồn: ${src.author}',
+                  style: AppTypography.labelSmall.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 12),
+              Text(
+                src.snippet.isEmpty
+                    ? 'Tài liệu đối chiếu từ kho tri thức RAG cộng đồng FPT University.'
+                    : src.snippet,
+                style: AppTypography.bodyMedium.copyWith(height: 1.5),
+              ),
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerRight,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(sheetContext),
+                  child: const Text('Đóng'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _showHistory() async {
     final cubit = context.read<AiChatCubit>();
     try {
@@ -101,9 +166,11 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
         ),
       );
     } catch (error) {
-      if (mounted)
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(error.toString())));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.toString())));
+      }
     }
   }
 
@@ -327,10 +394,9 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                   const SizedBox(height: 4),
                   Column(
                     children: msg.sources.map((src) {
-                      return GestureDetector(
-                        onTap: src.postId.isEmpty
-                            ? null
-                            : () => context.push('/post-detail/${src.postId}'),
+                      return InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () => _openCitation(src),
                         child: Container(
                           margin: const EdgeInsets.only(bottom: 4),
                           padding: const EdgeInsets.symmetric(
@@ -352,7 +418,9 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                               const SizedBox(width: 6),
                               Expanded(
                                 child: Text(
-                                  '${src.title} • ${src.author}',
+                                  src.author.isEmpty
+                                      ? src.title
+                                      : '${src.title} • ${src.author}',
                                   style: AppTypography.labelSmall.copyWith(
                                     color: AppColors.secondary,
                                     fontWeight: FontWeight.w600,

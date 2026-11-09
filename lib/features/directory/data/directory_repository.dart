@@ -46,12 +46,18 @@ class DirectoryRepository {
       company: '${user['currentCompany'] ?? ''}',
       avatarUrl: '${user['avatarUrl'] ?? ''}',
       isVerified: user['emailVerified'] as bool? ?? false,
-      isAvailableForMentoring: false,
+      isAvailableForMentoring:
+          ('${user['googleCalendarUrl'] ?? ''}').trim().isNotEmpty,
       rating: 0,
       reviewsCount: 0,
       completedSessions: 0,
       skills: skills,
       bio: '${user['bio'] ?? ''}',
+      email: '${user['email'] ?? ''}',
+      phoneNumber: '${user['phoneNumber'] ?? ''}',
+      linkedInUrl: '${user['linkedInUrl'] ?? ''}',
+      gitHubUrl: '${user['gitHubUrl'] ?? ''}',
+      calendarUrl: '${user['googleCalendarUrl'] ?? ''}',
     );
   }
 }

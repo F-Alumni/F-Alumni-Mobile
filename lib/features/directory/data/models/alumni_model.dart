@@ -15,6 +15,11 @@ class AlumniModel {
   final int completedSessions;
   final List<String> skills;
   final String bio;
+  final String email;
+  final String phoneNumber;
+  final String linkedInUrl;
+  final String gitHubUrl;
+  final String calendarUrl;
 
   const AlumniModel({
     required this.id,
@@ -33,6 +38,11 @@ class AlumniModel {
     required this.completedSessions,
     required this.skills,
     required this.bio,
+    this.email = '',
+    this.phoneNumber = '',
+    this.linkedInUrl = '',
+    this.gitHubUrl = '',
+    this.calendarUrl = '',
   });
 
   factory AlumniModel.fromJson(Map<String, dynamic> json) {
@@ -58,6 +68,11 @@ class AlumniModel {
               .toList() ??
           const [],
       bio: json['bio'] as String? ?? '',
+      email: json['email'] as String? ?? '',
+      phoneNumber: json['phoneNumber'] as String? ?? '',
+      linkedInUrl: json['linkedInUrl'] as String? ?? '',
+      gitHubUrl: json['gitHubUrl'] as String? ?? '',
+      calendarUrl: json['calendarUrl'] as String? ?? '',
     );
   }
 
@@ -78,5 +93,10 @@ class AlumniModel {
     'completedSessions': completedSessions,
     'skills': skills,
     'bio': bio,
+    'email': email,
+    'phoneNumber': phoneNumber,
+    'linkedInUrl': linkedInUrl,
+    'gitHubUrl': gitHubUrl,
+    'calendarUrl': calendarUrl,
   };
 }

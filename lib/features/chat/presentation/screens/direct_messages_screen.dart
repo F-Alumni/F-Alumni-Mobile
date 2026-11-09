@@ -1,26 +1,34 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:alumni_connect/core/theme/app_colors.dart';
 import 'package:alumni_connect/core/theme/app_typography.dart';
 import 'package:alumni_connect/features/chat/data/models/chat_model.dart';
 import 'package:alumni_connect/features/chat/presentation/cubit/chat_cubit.dart';
 import 'package:alumni_connect/features/auth/presentation/cubit/auth_cubit.dart';
+import 'package:alumni_connect/features/lab3/presentation/providers/firebase_service_providers.dart';
 import 'package:alumni_connect/features/profile/presentation/cubit/profile_cubit.dart';
 
-class DirectMessagesScreen extends StatefulWidget {
+class DirectMessagesScreen extends ConsumerStatefulWidget {
   final String conversationId;
 
   const DirectMessagesScreen({super.key, required this.conversationId});
 
   @override
-  State<DirectMessagesScreen> createState() => _DirectMessagesScreenState();
+  ConsumerState<DirectMessagesScreen> createState() =>
+      _DirectMessagesScreenState();
 }
 
-class _DirectMessagesScreenState extends State<DirectMessagesScreen> {
+class _DirectMessagesScreenState extends ConsumerState<DirectMessagesScreen> {
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final ImagePicker _imagePicker = ImagePicker();
   late final ChatCubit _chatCubit;
+  bool _uploadingImage = false;
 
   @override
   void initState() {
@@ -60,6 +68,93 @@ class _DirectMessagesScreenState extends State<DirectMessagesScreen> {
         );
       }
     });
+  }
+
+  Future<void> _showImageOptions() async {
+    if (_uploadingImage) return;
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Chọn ảnh từ điện thoại (CH-07)'),
+              onTap: () => Navigator.pop(sheetContext, 'device'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.link),
+              title: const Text('Gửi ảnh bằng đường dẫn URL'),
+              onTap: () => Navigator.pop(sheetContext, 'url'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted) return;
+    if (choice == 'device') await _pickAndUploadChatImage();
+    if (choice == 'url') await _sendImageByUrl();
+  }
+
+  Future<void> _pickAndUploadChatImage() async {
+    if (_uploadingImage) return;
+    try {
+      final picked = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 82,
+        maxWidth: 1800,
+      );
+      if (picked == null || !mounted) return;
+
+      final file = File(picked.path);
+      final size = await file.length();
+      if (!mounted) return;
+      if (size > 10 * 1024 * 1024) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ảnh phải nhỏ hơn 10 MB.')),
+        );
+        return;
+      }
+
+      final firebaseUser = ref.read(firebaseAuthServiceProvider)?.currentUser;
+      final storage = ref.read(firebaseStorageServiceProvider);
+      if (firebaseUser == null || storage == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Cần đăng nhập Google để tải ảnh từ máy, hoặc dùng gửi bằng URL.',
+            ),
+          ),
+        );
+        return;
+      }
+
+      setState(() => _uploadingImage = true);
+      String? downloadUrl;
+      final fileName =
+          '${DateTime.now().microsecondsSinceEpoch}_${picked.name}';
+      await for (final progress in storage.uploadPostImage(
+        uid: firebaseUser.uid,
+        file: file,
+        fileName: fileName,
+      )) {
+        downloadUrl = progress.downloadUrl ?? downloadUrl;
+      }
+      if (downloadUrl == null || !mounted) return;
+      await _chatCubit.sendMessage(
+        widget.conversationId,
+        '',
+        imageUrl: downloadUrl,
+      );
+    } on Object catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Không gửi được ảnh: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => _uploadingImage = false);
+    }
   }
 
   Future<void> _sendImageByUrl() async {
@@ -156,8 +251,9 @@ class _DirectMessagesScreenState extends State<DirectMessagesScreen> {
     final error = await context.read<ProfileCubit>().blockUser(userId);
     if (!mounted) return;
     if (error != null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(error)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error)),
+      );
       return;
     }
     context.pop();
@@ -180,10 +276,11 @@ class _DirectMessagesScreenState extends State<DirectMessagesScreen> {
         final matches = state.conversations.where(
           (c) => c.id == widget.conversationId,
         );
-        if (matches.isEmpty)
+        if (matches.isEmpty) {
           return const Scaffold(
             body: Center(child: Text('Không tìm thấy cuộc trò chuyện.')),
           );
+        }
         final conv = matches.first;
         final authState = context.read<AuthCubit>().state;
         final currentUserId = authState is AuthAuthenticated
@@ -319,11 +416,13 @@ class _DirectMessagesScreenState extends State<DirectMessagesScreen> {
                         .toggleHidden(conv.id);
                     if (changed && context.mounted) context.pop();
                   }
-                  if (val == 'mute')
+                  if (val == 'mute') {
                     context.read<ChatCubit>().toggleMute(conv.id);
+                  }
                   if (val == 'search') _searchMessages();
-                  if (val == 'block' && conv.peerUserId != null)
+                  if (val == 'block' && conv.peerUserId != null) {
                     _blockPeer(conv.peerUserId!);
+                  }
                 },
               ),
             ],
@@ -361,7 +460,7 @@ class _DirectMessagesScreenState extends State<DirectMessagesScreen> {
                   ),
                 ),
 
-              // Message input and image URL attachment (CH-07)
+              // Message input and image attachment (CH-07)
               _buildInputBar(),
             ],
           ),
@@ -499,9 +598,15 @@ class _DirectMessagesScreenState extends State<DirectMessagesScreen> {
       child: Row(
         children: [
           IconButton(
-            tooltip: 'Gửi ảnh bằng URL',
-            onPressed: _sendImageByUrl,
-            icon: const Icon(Icons.image_outlined, color: AppColors.primary),
+            tooltip: 'Đính kèm ảnh (CH-07)',
+            onPressed: _uploadingImage ? null : _showImageOptions,
+            icon: _uploadingImage
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.image_outlined, color: AppColors.primary),
           ),
           Expanded(
             child: TextField(
