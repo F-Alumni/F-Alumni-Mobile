@@ -1,223 +1,260 @@
-# SLIDE THUYẾT TRÌNH BẢO VỆ LAB 3: TÍCH HỢP FLUTTER & FIREBASE
-## Môn học: PRM393 — Advanced Mobile Programming
-**Dự án:** FPT Alumni Connect (`F-Alumni-Mobile`)  
-**Sinh viên trình bày:** Trương Chí Trung (MSSV: SE170000 / GitHub: `chstrg2208`)  
-**Firebase Project:** `alumniconnect-295ed`  
-**Quy mô Slide:** 14 Trang chuẩn thuyết trình kỹ thuật  
-
----
-
 <!-- SLIDE 1 -->
-# SLIDE 1: TRANG TIÊU ĐỀ
-## FPT ALUMNI CONNECT — NỀN TẢNG KẾT NỐI CỘNG ĐỒNG FPT
-### Đồ án thực hành Lab 3: Kiến trúc MVVM & Tích hợp 6 Dịch vụ Đám mây Firebase
-* **Sinh viên:** Trương Chí Trung (SE170000)
-* **Lớp:** PRM393 — Học kỳ Fall 2026
-* **Giảng viên hướng dẫn:** Bộ môn Kỹ thuật Phần mềm — Đại học FPT
-* **Công nghệ chủ đạo:** Flutter SDK 3.13+, Firebase Core (BaaS), .NET 9 Microservices, Clean Architecture / MVVM
+# SLIDE 1: TRANG TIÊU ĐỀ — BẢO VỆ LAB 3: TÍCH HỢP FLUTTER & FIREBASE
+## FPT ALUMNI CONNECT — NỀN TẢNG KẾT NỐI CỘNG ĐỒNG CỰU SINH VIÊN ĐẠI HỌC FPT
+### Đồ án thực hành Lab 3: Kiến trúc MVVM, Tích hợp 6 Dịch vụ Firebase & Kiểm thử Tự động ARTEMIS
+
+* **Lớp / Môn học:** `FA26-34-PRM323-SE1919` (`PRM323` / `PRM393` — Mobile Programming, Học kỳ Fall 2026)
+* **Giảng viên hướng dẫn:** Thầy **Phuonglhk** — Bộ môn Kỹ thuật Phần mềm, Đại học FPT
+* **Dự án & Firebase Project:** `F-Alumni-Mobile` | Firebase ID: `alumniconnect-295ed`
+* **Nhóm thực hiện (`F-Alumni` — 5 Thành viên):**
+  - **Đỗ Trọng Tín** — Mobile App & QA Lead (Flutter UI/UX, 6 Firebase Services, ARTEMIS & Widget Tests — GitHub: `Tindo39851`)
+  - **Trương Chí Trung** — Team Lead & Backend 1 (User Service `:5001` & Chat Service `:5002` — GitHub: `chstrg2208`)
+  - **Vinh** — Backend 2 (Forum Service `:5003` & AI Service `:5004` — GitHub: `MTV-2602`)
+  - **Nguyễn Quang Tâm** (`SE192621`) — Backend 3 (Admin Service `:5005` & API Gateway Infrastructure — GitHub: `QuangTam2005`)
+  - **Khải** — Frontend Web Developer (Web Portal & Gateway Integration)
+* **Công nghệ chủ đạo:** Flutter SDK 3.13+, Riverpod MVVM, Firebase Core (6 BaaS Services), .NET Microservices, SignalR.
+
+![Onboarding](./evidence/auth/Step_01_Onboarding_KetNoiCongDong.png)
+![Home Feed](./evidence/auth/Step_06_DangNhap_ThanhCong_HomeFeed.png)
 
 ---
 
 <!-- SLIDE 2 -->
 # SLIDE 2: MỤC TIÊU VÀ YÊU CẦU TRỌNG TÂM CỦA LAB 3
-## Chuyển giao thiết kế Lab 2 thành ứng dụng Flutter hoàn chỉnh với Cloud Backend
-1. **Kiến trúc MVVM phân tầng nghiêm ngặt:** Tuyệt đối không cho phép View (Widget) gọi trực tiếp Firebase SDK; toàn bộ thao tác đám mây đi qua Service Layer và Riverpod Notifier.
-2. **Hiện thực 3 luồng nghiệp vụ cốt lõi:**
-   - Lướt Bảng tin cộng đồng, tạo bài viết và bình luận kỹ thuật.
-   - Tra cứu Danh bạ cựu sinh viên và trò chuyện cùng trợ lý AI Mentor.
-   - Tìm kiếm cơ hội Việc làm và nộp hồ sơ giới thiệu Referral.
-3. **Tích hợp trọn vẹn 6 dịch vụ Firebase:** Authentication, Cloud Storage, FCM, Google Analytics, Crashlytics, Remote Config.
+## Chuyển giao thiết kế Lab 2 thành ứng dụng Flutter hoàn chỉnh kết nối Cloud Backend & Firebase
+
+1. **Kiến trúc MVVM phân tầng nghiêm ngặt:**
+   - Tuyệt đối không cho phép tầng `View` (Widget) gọi trực tiếp Firebase SDK.
+   - Toàn bộ thao tác đám mây đi qua `Service Layer` (`lib/core/services/firebase/`) và `ViewModel` (`Riverpod Notifier`).
+2. **Hiện thực 3 luồng nghiệp vụ cốt lõi (Kế thừa Lab 2 & mở rộng 41/41 Non-Admin User Stories):**
+   - **Luồng 1:** Bảng tin cộng đồng (Forum Feed), tạo bài viết đa phương tiện, thả cảm xúc và bình luận kỹ thuật thời gian thực.
+   - **Luồng 2:** Tra cứu Danh bạ Cựu sinh viên (Directory), kết nối cố vấn Mentorship và trò chuyện cùng trợ lý **AI Mentor**.
+   - **Luồng 3:** Tìm kiếm cơ hội Việc làm (Job Board), lọc theo hình thức làm việc và nộp hồ sơ giới thiệu **Referral**.
+3. **Tích hợp trọn vẹn 6 dịch vụ Firebase:**
+   - `Authentication`, `Cloud Storage`, `Cloud Messaging (FCM)`, `Google Analytics`, `Crashlytics`, `Remote Config`.
 4. **Kiểm chuẩn chất lượng toàn diện:**
-   - Kiểm thử tự động ARTEMIS: 14 test cases x 3 lượt chạy = 100% Pass Rate.
-   - Rà soát mã nguồn bằng AI: 6 phát hiện, bảng quyết định kỹ thuật và Git commit truy vết.
+   - **ARTEMIS E2E Testing:** 14 test cases x 3 lượt chạy = **42/42 lượt Passed (100% Pass Rate)** + 25 phút Exploratory Testing.
+   - **AI Code Review:** 6 phát hiện kỹ thuật (`F-01..F-06`), bảng quyết định (Decision Matrix) và 5 Git commits sửa lỗi nguyên tử.
 
 ---
 
 <!-- SLIDE 3 -->
-# SLIDE 3: KIẾN TRÚC HỆ THỐNG: MÔ HÌNH MVVM PHÂN TẦNG
+# SLIDE 3: KIẾN TRÚC HỆ THỐNG — MÔ HÌNH MVVM PHÂN TẦNG
 ## Dòng chảy dữ liệu một chiều (Unidirectional Data Flow) & Ranh giới tích hợp
 
 ```text
-  ┌─────────────────────────────────────────────────────────────┐
-  │                 VIEW (Flutter UI Widgets)                   │
-  │    Loading State ── Content State ── Empty ── Error State   │
-  └──────────────────────────────┬──────────────────────────────┘
-                                 │ Lắng nghe trạng thái UI (State Stream)
-                                 ▼
-  ┌─────────────────────────────────────────────────────────────┐
-  │              VIEWMODEL (Riverpod / StateNotifier)           │
-  │     Quản lý logic trạng thái, chuyển đổi dữ liệu DTO        │
-  └──────────────────────────────┬──────────────────────────────┘
-                                 │ Gọi nghiệp vụ trừu tượng
-                                 ▼
-  ┌─────────────────────────────────────────────────────────────┐
-  │                        SERVICE LAYER                        │
-  │  FirebaseAuth, FirebaseStorage, Analytics, Crashlytics...   │
-  └──────────────────────────────┬──────────────────────────────┘
-                                 │ Firebase API Calls
-                                 ▼
-  ┌─────────────────────────────────────────────────────────────┐
-  │                      FIREBASE SDK CORE                      │
-  └─────────────────────────────────────────────────────────────┘
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │                        VIEW LAYER (Flutter Widgets)                     │
+  │         Loading State ──► Content State ──► Empty ──► Error State       │
+  └────────────────────────────────────┬────────────────────────────────────┘
+                                       │ Lắng nghe trạng thái UI (State Stream)
+                                       ▼
+  ┌─────────────────────────────────────────────────────────────────────────┐
+  │                 VIEWMODEL LAYER (Riverpod / StateNotifier)              │
+  │          Quản lý logic trạng thái, kiểm tra đầu vào, chuyển đổi DTO     │
+  └─────────────────┬───────────────────────────────────────┬───────────────┘
+                    │ Gọi dịch vụ đám mây                   │ Gọi REST / SignalR
+                    ▼                                       ▼
+  ┌─────────────────────────────────────┐ ┌─────────────────────────────────┐
+  │       FIREBASE SERVICE LAYER        │ │     BACKEND REPOSITORY LAYER    │
+  │ Auth, Storage, FCM, Analytics,      │ │ User(:5001), Chat(:5002),       │
+  │ Crashlytics, Remote Config Wrappers │ │ Forum(:5003), AI(:5004)         │
+  └─────────────────┬───────────────────┘ └─────────────────┬───────────────┘
+                    ▼                                       ▼
+  ┌─────────────────────────────────────┐ ┌─────────────────────────────────┐
+  │          FIREBASE SDK CORE          │ │   .NET MICROSERVICES & GATEWAY  │
+  └─────────────────────────────────────┘ └─────────────────────────────────┘
 ```
-* **Nguyên tắc bảo vệ ranh giới:** Tách biệt độc lập giúp ứng dụng dễ dàng viết Unit Test (Mocking), không bị phụ thuộc cứng vào bất kỳ bên thứ ba nào.
+* **Nguyên tắc bảo vệ ranh giới:** Tách biệt hoàn toàn giao diện khỏi Firebase SDK giúp ứng dụng dễ dàng viết Widget/Unit Test (Mocking `ProviderScope`), không bị phụ thuộc cứng vào nền tảng thứ ba.
 
 ---
 
 <!-- SLIDE 4 -->
 # SLIDE 4: DỊCH VỤ 1 — FIREBASE AUTHENTICATION
 ## Quản lý danh tính sinh viên, Google Sign-In & Bảo vệ tuyến đường (Route Guard)
-* **Giải pháp kỹ thuật:**
-  - Cấu hình chữ ký SHA-1 và SHA-256 trên Firebase Console của dự án `alumniconnect-295ed`.
-  - Thực hiện đăng nhập Google bằng `GoogleSignIn.authenticate()`, trích xuất `idToken` và xác thực với Firebase.
-  - Đồng bộ phiên: Trao đổi ID Token với User Service (:5001) để lấy JWT quản lý phân quyền Backend.
-  - Lắng nghe luồng `authStateChanges()`: Tự động điều hướng giữa màn hình Login và Home, chặn truy cập trái phép vào các màn hình Profile/Settings khi chưa đăng nhập.
-* **Xử lý ngoại lệ:** Bắt lỗi hủy chọn tài khoản (User cancelled), mất mạng hoặc lỗi máy chủ an toàn.
-* **Minh chứng:** `Console_01_Authentication_Users.png` (Xác nhận UID trên Console) & `Step_04_ManHinh_DangNhap.png`.
+
+* **Giải pháp kỹ thuật (`lib/features/auth/data/auth_repository.dart`):**
+  - Cấu hình chữ ký chứng chỉ `SHA-1` và `SHA-256` trên Firebase Console của dự án `alumniconnect-295ed`.
+  - Thực hiện đăng nhập Google qua `GoogleSignIn.authenticate()`, trích xuất `idToken` và xác thực với `FirebaseAuth`.
+  - **Đồng bộ phiên kép (Dual Session Sync):** Trao đổi Firebase ID Token với User Service (`:5001`) để lấy JWT quản lý phân quyền Backend.
+  - **Route Guard:** Lắng nghe luồng `authStateChanges()` tự động điều hướng giữa `LoginScreen` và `HomeScreen`, chặn truy cập trái phép vào `Profile` / `Settings` khi chưa đăng nhập.
+* **Xử lý ngoại lệ:** Bắt lỗi hủy chọn tài khoản (`User cancelled`), mất kết nối mạng hoặc lỗi máy chủ an toàn.
+* **Minh chứng thực tế:** `Console_01_Authentication_Users.png` & `Step_04_ManHinh_DangNhap.png`.
+
+![Firebase Auth Console](./evidence/firebase_console/Console_01_Authentication_Users.png)
+![Login Screen](./evidence/auth/Step_04_ManHinh_DangNhap.png)
 
 ---
 
 <!-- SLIDE 5 -->
 # SLIDE 5: DỊCH VỤ 2 — FIREBASE CLOUD STORAGE
 ## Lưu trữ đám mây theo định danh người dùng & Quy tắc bảo mật nhiều tầng
-* **Giải pháp kỹ thuật:**
-  - Triển khai `FirebaseStorageService` cung cấp luồng Stream cập nhật tiến độ tải lên phần trăm thời gian thực (`StorageUploadProgress`).
-  - Cấu trúc thư mục đám mây nghiêm ngặt: `reports/{uid}/{filename}` và `posts/{uid}/{filename}`.
-  - Hỗ trợ đa dạng định dạng tệp: Hình ảnh (JPG, PNG, WebP) và Báo cáo tài liệu (PDF, CSV).
-  - Tự động lấy Download URL bảo mật sau khi hoàn tất tải lên (`TaskState.success`).
-* **Luật bảo mật (`firebase/storage.rules`):**
-  - Chỉ cho phép chính chủ sở hữu UID đọc/ghi tệp của họ (`request.auth.uid == userId`).
-  - Ràng buộc giới hạn kích thước tối đa `< 10MB` và xác thực MIME-type, ngăn chặn DoS dung lượng.
-* **Minh chứng:** `Console_02_Cloud_Storage.png` & `Step_10`, `Step_12`, `Step_13`.
+
+* **Giải pháp kỹ thuật (`lib/core/services/firebase/firebase_storage_service.dart`):**
+  - Cung cấp luồng `Stream<StorageUploadProgress>` cập nhật tiến độ tải lên theo phần trăm thời gian thực.
+  - Cấu trúc thư mục cô lập theo người dùng: `reports/{uid}/{filename}` và `posts/{uid}/{filename}`.
+  - Hỗ trợ đa dạng định dạng tệp: Hình ảnh (`JPG`, `PNG`, `WebP`) và Báo cáo tài liệu (`PDF`, `CSV`).
+  - Tự động trích xuất `Download URL` bảo mật ngay sau khi hoàn tất tải lên (`TaskState.success`).
+* **Luật bảo mật đám mây (`firebase/storage.rules`):**
+  - Chỉ cho phép chính chủ sở hữu UID đọc/ghi tệp của mình (`request.auth != null && request.auth.uid == userId`).
+  - Ràng buộc dung lượng tối đa `< 10MB` và xác thực `contentType` (MIME-type), ngăn chặn tấn công làm đầy bộ nhớ.
+* **Minh chứng thực tế:** `Console_02_Cloud_Storage.png`, `Step_10_ThayDoiAvatar_GiaoDien.png`, `Step_12_TaoBaiViet_ChonAnh_Storage.png`.
+
+![Cloud Storage Console](./evidence/firebase_console/Console_02_Cloud_Storage.png)
+![Upload Post Image](./evidence/app_flows/Step_12_TaoBaiViet_ChonAnh_Storage.png)
 
 ---
 
 <!-- SLIDE 6 -->
 # SLIDE 6: DỊCH VỤ 3 — FIREBASE CLOUD MESSAGING (FCM)
-## Thông báo đẩy đa trạng thái, Quyền Android 13+ & Hộp thư thông báo
-* **Giải pháp kỹ thuật:**
-  - Tương thích toàn diện với Android 13+ và Android 14 (API 34): Chủ động xin cấp quyền runtime `POST_NOTIFICATIONS`.
+## Thông báo đẩy đa trạng thái, Quyền Android 13+ & Hộp thư thông báo (Notification Inbox)
+
+* **Giải pháp kỹ thuật (`lib/core/services/firebase/fcm_service.dart`):**
+  - Tương thích toàn diện với **Android 13+ và Android 14 (API 34)**: Chủ động xin cấp quyền runtime `POST_NOTIFICATIONS`.
   - Xử lý mượt mà thông báo trên cả **3 trạng thái vòng đời ứng dụng**:
-    1. *Foreground:* Bắt sự kiện hiển thị In-app Toast / Notification Card không gây gián đoạn UI.
-    2. *Background:* Nhận Push Notification qua trung tâm thông báo của hệ điều hành.
-    3. *Terminated:* Ứng dụng tự động bật từ trạng thái tắt hoàn toàn và điều hướng chính xác đến màn hình mục tiêu (Deep Linking).
-  - Xây dựng Trung tâm thông báo (Notification Inbox) cục bộ trong app để lưu vết và xem lại lịch sử.
-* **Minh chứng:** `Step_19_HopThu_ThongBao_NotificationInbox.png`.
+    1. **Foreground:** Bắt sự kiện `FirebaseMessaging.onMessage`, hiển thị In-app Banner/Toast không gây gián đoạn trải nghiệm.
+    2. **Background:** Nhận Push Notification qua trung tâm thông báo hệ thống, chạm mở đúng ngữ cảnh (`onMessageOpenedApp`).
+    3. **Terminated:** Khởi chạy ứng dụng từ trạng thái đóng hoàn toàn (`getInitialMessage`) và điều hướng chính xác đến màn hình mục tiêu (**Deep Linking**).
+  - Xây dựng **Trung tâm thông báo (Notification Inbox)** lưu vết lịch sử thông báo ngay trong ứng dụng.
+* **Minh chứng thực tế:** `Step_19_HopThu_ThongBao_NotificationInbox.png` & `Step_11_ThayDoiAvatar_ThongBaoFirebase.png`.
+
+![Notification Inbox](./evidence/app_flows/Step_19_HopThu_ThongBao_NotificationInbox.png)
+![In-App Firebase Notification](./evidence/app_flows/Step_11_ThayDoiAvatar_ThongBaoFirebase.png)
 
 ---
 
 <!-- SLIDE 7 -->
 # SLIDE 7: DỊCH VỤ 4 — GOOGLE ANALYTICS FOR FIREBASE
-## Đo lường hành vi người dùng, Bảo vệ dữ liệu cá nhân (No PII) & DebugView
-* **Giải pháp kỹ thuật:**
-  - Soạn thảo tài liệu chiến lược `docs/analytics-plan.md` quy định **8 sự kiện chuẩn hóa**:
+## Đo lường hành vi người dùng, Bảo vệ dữ liệu cá nhân (No PII) & Kiểm chứng DebugView
+
+* **Giải pháp kỹ thuật (`lib/core/services/firebase/analytics_service.dart` & `docs/analytics-plan.md`):**
+  - Thiết kế tài liệu chiến lược `docs/analytics-plan.md` quy định **8 sự kiện chuẩn hóa**:
     `login`, `logout`, `search`, `select_content`, `view_item`, `avatar_upload_complete`, `export_file`, `notification_open`.
-  - Thiết lập định danh người dùng `setUserId(user.uid)` sau khi đăng nhập thành công.
-  - **Chính sách bảo mật (No PII):** Tuyệt đối không gửi email sinh viên, tên thật, số điện thoại hay chuỗi tìm kiếm thô vào tham số sự kiện.
-* **Kiểm chứng thực tế:**
+  - Thiết lập định danh phiên người dùng bằng `setUserId(user.uid)` ngay sau khi xác thực thành công.
+  - **Chính sách bảo mật nghiêm ngặt (No PII Policy):** Tuyệt đối không đính kèm email sinh viên, họ tên thật, số điện thoại hay chuỗi tìm kiếm thô vào tham số sự kiện (`parameters`).
+* **Kiểm chứng thực tế trên Console DebugView:**
   - Kích hoạt chế độ kiểm thử: `adb shell setprop debug.firebase.analytics.app vn.edu.fpt.alumni_connect`.
-  - Kiểm tra dòng sự kiện trực tiếp trên Firebase Console DebugView.
-* **Minh chứng:** `Console_03_Analytics_DebugView.png`.
+  - Xác nhận luồng sự kiện bắn lên theo thời gian thực trên **Firebase Console DebugView**.
+* **Minh chứng thực tế:** `Console_03_Analytics_DebugView.png`.
+
+![Analytics DebugView Console](./evidence/firebase_console/Console_03_Analytics_DebugView.png)
 
 ---
 
 <!-- SLIDE 8 -->
 # SLIDE 8: DỊCH VỤ 5 — FIREBASE CRASHLYTICS
 ## Theo dõi sự cố toàn cục, Ghi nhận lỗi phi nghiêm trọng (Non-fatal) & Diagnostic Keys
-* **Giải pháp kỹ thuật:**
-  - Thiết lập bẫy lỗi toàn cục qua `FlutterError.onError` và `PlatformDispatcher.instance.onError`.
-  - Ghi nhận lỗi có xử lý (`recordHandledError` / Non-fatal): Khi xảy ra lỗi mạng trong quá trình upload, ứng dụng hiển thị thông báo thân thiện cho người dùng, đồng thời tự động đẩy stack trace về Crashlytics.
-  - Gắn khóa chẩn đoán ngữ cảnh: `setUserIdentifier` và `setCustomKey("environment", "development")`.
-  - Xây dựng nút bấm ẩn thử nghiệm sự cố (Test Crash Button) trong khu vực gỡ lỗi để kiểm tra đường truyền.
+
+* **Giải pháp kỹ thuật (`lib/core/services/firebase/crashlytics_service.dart`):**
+  - Thiết lập bẫy ngoại lệ toàn cục tại hàm `main()` thông qua `FlutterError.onError` và `PlatformDispatcher.instance.onError`.
+  - **Ghi nhận lỗi có xử lý (`recordHandledError` / Non-fatal):** Khi phát sinh lỗi mạng hoặc lỗi tải tệp, ứng dụng vừa hiển thị thông báo thân thiện cho người dùng vừa âm thầm đẩy stack trace về Crashlytics để đội ngũ kỹ thuật phân tích.
+  - **Khóa chẩn đoán ngữ cảnh (Custom Diagnostic Keys):** Gắn `setUserIdentifier(uid)` và `setCustomKey("environment", "development")`.
+  - Tích hợp nút **Test Crash Button** trong khu vực gỡ lỗi (Debug Panel) để kiểm chứng đường truyền báo cáo sự cố.
 * **Minh chứng thực tế:**
-  - `Console_04_Crashlytics_Dashboard.png`: Bảng điều khiển ghi nhận trực tiếp **184 sự cố**, 2 người dùng bị ảnh hưởng và phân tích chi tiết dòng mã gây crash.
+  - `Console_04_Crashlytics_Dashboard.png`: Bảng điều khiển ghi nhận trực tiếp **184 sự cố**, **2 người dùng** bị ảnh hưởng cùng phân tích chi tiết dòng mã gây crash.
+
+![Crashlytics Dashboard](./evidence/firebase_console/Console_04_Crashlytics_Dashboard.png)
 
 ---
 
 <!-- SLIDE 9 -->
 # SLIDE 9: DỊCH VỤ 6 — FIREBASE REMOTE CONFIG
-## Cấu hình ứng dụng từ xa thời gian thực & Cơ chế Fallback ngoại tuyến
-* **Giải pháp kỹ thuật:**
-  - Thiết lập 2 tham số cấu hình liên kết trực tiếp với UI kèm giá trị mặc định (`setDefaults`):
-    1. `is_promo_banner_enabled` (boolean, mặc định: `true`): Điều khiển bật/tắt hiển thị thẻ quảng bá "Sự kiện & Workshop FPTU mới nhất" trên Home Feed.
-    2. `max_items_display` (number, mặc định: `10`): Điều khiển số lượng bài viết / alumni nạp trong danh sách.
-  - Tối ưu chu kỳ fetch: Áp dụng `Duration.zero` khi ở chế độ `kDebugMode` giúp thay đổi trên Console phản ánh tức thì lên app mà không cần build lại APK.
-  - Cơ chế Fallback ngoại tuyến an toàn: Khi mất mạng hoặc thiết bị ở chế độ máy bay, ứng dụng tự động dùng bộ giá trị mặc định trong code, không gây vỡ giao diện.
-* **Minh chứng:** `Console_05_RemoteConfig_Dashboard.png` & `Step_06_DangNhap_ThanhCong_HomeFeed.png`.
+## Cấu hình giao diện từ xa thời gian thực & Cơ chế Fallback ngoại tuyến an toàn
+
+* **Giải pháp kỹ thuật (`lib/core/services/firebase/remote_config_service.dart`):**
+  - Thiết lập **2 tham số cấu hình động** liên kết trực tiếp với giao diện kèm bộ giá trị mặc định (`setDefaults`):
+    1. `is_promo_banner_enabled` (`boolean`, mặc định: `true`): Điều khiển bật/tắt thẻ quảng bá *"Sự kiện & Workshop FPTU mới nhất"* trên màn hình Home Feed.
+    2. `max_items_display` (`number`, mặc định: `10`): Điều khiển số lượng bài viết / hồ sơ cựu sinh viên hiển thị trên danh sách.
+  - **Tối ưu chu kỳ nạp (Zero-Interval Debug Fetch):** Áp dụng `minimumFetchInterval: Duration.zero` trong chế độ `kDebugMode` giúp mọi thay đổi trên Firebase Console phản ánh tức thì lên ứng dụng mà không cần đóng gói lại APK.
+  - **Cơ chế Fallback ngoại tuyến:** Khi mất mạng hoặc bật chế độ máy bay, ứng dụng tự động sử dụng giá trị mặc định an toàn, tuyệt đối không gây vỡ giao diện.
+* **Minh chứng thực tế:** `Console_05_RemoteConfig_Dashboard.png` & `Step_06_DangNhap_ThanhCong_HomeFeed.png`.
+
+![Remote Config Console](./evidence/firebase_console/Console_05_RemoteConfig_Dashboard.png)
+![Home Feed Promo Banner](./evidence/auth/Step_06_DangNhap_ThanhCong_HomeFeed.png)
 
 ---
 
 <!-- SLIDE 10 -->
-# SLIDE 10: BA LUỒNG NGHIỆP VỤ KẾ THỪA TỪ LAB 2
-## Trải nghiệm người dùng mượt mà, tích hợp Backend Microservices
-1. **Luồng 1 — Bảng tin & Thảo luận kỹ thuật:**
-   - Lướt bài viết từ Forum Service (:5003), lọc bài theo chuyên đề (CNTT, Việc làm, Kinh doanh).
-   - Đăng bài viết mới kèm ảnh tải lên Cloud Storage; xem chi tiết bài và bình luận thời gian thực (`Step_06`, `Step_12`, `Step_14`).
-2. **Luồng 2 — Danh bạ Cựu sinh viên & Cố vấn AI Mentor:**
-   - Tìm kiếm alumni theo ngành học, khóa tốt nghiệp (K14–K17), cơ sở đào tạo (Hòa Lạc, TP.HCM, Đà Nẵng).
-   - Xem hồ sơ chi tiết Alumni và kết nối trợ lý **AI Mentor** tư vấn OJT 24/7 (`Step_15`, `Step_16`, `Step_20`).
-3. **Luồng 3 — Cơ hội Việc làm & Giới thiệu Doanh nghiệp:**
-   - Khám phá các tin tuyển dụng hot từ cựu sinh viên tại FPT Software, Momo, Viettel...
-   - Xem chi tiết mô tả công việc, mức lương, văn hóa doanh nghiệp và gửi yêu cầu Referral nội bộ (`Step_17`, `Step_18`).
+# SLIDE 10: BA LUỒNG NGHIỆP VỤ KẾ THỪA TỪ LAB 2 & ĐỒNG BỘ MICROSERVICES
+## Trải nghiệm người dùng xuyên suốt, tích hợp 5 Microservices .NET & SignalR Realtime
+
+1. **Luồng 1 — Bảng tin Cộng đồng & Thảo luận Kỹ thuật (Forum Flow):**
+   - Lướt bài viết từ Forum Service (`:5003`), lọc theo chuyên mục, tìm kiếm từ khóa và xem bài ghim (`Pinned`).
+   - Đăng bài viết mới kèm ảnh tải lên Cloud Storage; thả cảm xúc (6 loại Reaction), bình luận đa tầng và báo cáo vi phạm (`Step_12`, `Step_14`).
+2. **Luồng 2 — Danh bạ Cựu sinh viên & Cố vấn AI Mentor (Directory & AI Flow):**
+   - Tìm kiếm cựu sinh viên theo ngành học, khóa (`K14–K18`), cơ sở FPTU; gửi lời mời kết nối và yêu cầu cố vấn Mentorship (`Step_15`, `Step_16`).
+   - Trò chuyện trực tiếp với trợ lý ảo **AI Mentor** (`:5004`) tư vấn định hướng nghề nghiệp & OJT 24/7 (`Step_20`).
+3. **Luồng 3 — Cơ hội Việc làm & Giới thiệu Doanh nghiệp (Jobs & Referral Flow):**
+   - Khám phá tin tuyển dụng từ mạng lưới cựu sinh viên tại FPT Software, MoMo, Viettel, VNG...
+   - Xem chi tiết đãi ngộ, yêu cầu kỹ thuật và gửi hồ sơ xin **Referral nội bộ** (`Step_17`, `Step_18`).
+
+![Forum Post Detail](./evidence/app_flows/Step_14_ChiTietBaiViet_BinhLuan_FlowFeed.png)
+![Alumni Directory](./evidence/app_flows/Step_15_DanhBa_Alumni_Directory.png)
+![Job Detail](./evidence/app_flows/Step_18_ChiTiet_TinTuyenDung_JobDetail.png)
+![AI Mentor Chat](./evidence/app_flows/Step_20_TroLy_AIMentor_Chat.png)
 
 ---
 
 <!-- SLIDE 11 -->
-# SLIDE 11: ĐẢM BẢO CHẤT LƯỢNG — KIỂM THỬ TỰ ĐỘNG ARTEMIS
+# SLIDE 11: ĐẢM BẢO CHẤT LƯỢNG — KIỂM THỬ TỰ ĐỘNG ARTEMIS & WIDGET TESTS
 ## 14 Ca kiểm thử E2E x 3 Lượt chạy = 42/42 Lượt Passed (Tỷ lệ 100%)
-* **Đặc điểm kiểm thử nổi bật:**
-  - Bao phủ trọn vẹn cả 3 luồng nghiệp vụ Lab 2.
-  - Nhánh kiểm thử lỗi (Negative Flows): Chặn truy cập trái phép (ART-01), hủy đăng nhập Google (ART-02), tìm kiếm rỗng (ART-04), tải ảnh khi chưa có phiên (ART-09/ART-14).
-  - Tương tác hệ thống Android gốc (Native System Interaction): Xử lý cấp/từ chối quyền thông báo Android 13+ (ART-10).
-* **Phiên kiểm thử khám phá (Exploratory Testing Session - 25 Phút):**
-  - Thực hiện trên thiết bị Pixel 7 Emulator (Android 14).
-  - Phát hiện và khắc phục dứt điểm 2 lỗi giao diện (RenderFlex overflow trên Home AppBar và Onboarding Column).
-  - Kết quả: Toàn bộ bộ test suite (`flutter test`) vượt qua 100% không phát sinh lỗi layout.
+
+* **Khung kiểm thử tự động ARTEMIS (`docs/artemis-test-plan.md`):**
+  - **Độ phủ toàn diện:** Kiểm chứng trọn vẹn 3 luồng nghiệp vụ Lab 2 và 6 dịch vụ Firebase qua 3 lượt chạy liên tiếp (`42/42 Passed`).
+  - **Nhánh kiểm thử ngoại lệ (Negative Flows):** Chặn truy cập trái phép khi chưa đăng nhập (`ART-01`), hủy chọn tài khoản Google (`ART-02`), tìm kiếm không có kết quả (`ART-04`), chặn tải tệp khi thiếu phiên xác thực (`ART-09`, `ART-14`).
+  - **Tương tác hệ thống Android gốc (Native System Interaction):** Xử lý hộp thoại cấp/từ chối quyền `POST_NOTIFICATIONS` trên Android 13+ (`ART-10`).
+* **Phiên kiểm thử khám phá (Exploratory Testing — 25 Phút) & Responsive Widget Tests (`test/widget_test.dart`):**
+  - Thực hiện trên máy ảo Android 14; phát hiện và khắc phục triệt để 2 lỗi tràn bố cục (`RenderFlex overflow`).
+  - Bổ sung bộ Widget Test tự động kiểm tra đa kích thước màn hình (`320x568` SE, `412x915` Pixel, `800x1280` Tablet), phóng chữ `1.35x` và đẩy bàn phím ảo (`viewInsets.bottom = 320`) đạt **100% Pass**.
 
 ---
 
 <!-- SLIDE 12 -->
 # SLIDE 12: RÀ SOÁT MÃ NGUỒN BẰNG TRÍ TUỆ NHÂN TẠO (AI CODE REVIEW)
-## Đánh giá tự động chuyên sâu theo chuẩn CodeRabbit với 6 phát hiện trên 4 nhóm
-* **Bảng ma trận quyết định kỹ thuật (Decision Matrix):**
-  - **F-01 (Security & Validation):** Hỗ trợ tệp PDF/CSV trong Storage Service -> **ACCEPT** (Đã commit).
-  - **F-02 (Performance & UI):** Bọc Onboarding trong SingleChildScrollView chống overflow -> **ACCEPT** (Đã commit).
-  - **F-03 (Architecture):** Thêm sự kiện bắt buộc `export_file` vào Analytics -> **ACCEPT** (Đã commit).
-  - **F-04 (Error Handling):** Cải thiện thông báo và ghi nhận log an toàn khi thiếu phiên Firebase -> **MODIFY** (Đã commit).
-  - **F-05 (Cloud Security):** Ràng buộc kích thước file < 10MB và mime-type trong Storage Rules -> **ACCEPT** (Đã commit).
-  - **F-06 (Performance):** Tự động chuyển interval về Duration.zero trong kDebugMode cho Remote Config -> **MODIFY** (Đã commit).
-* **Kết quả:** Đã áp dụng 5 commit sửa lỗi nguyên tử trên Git, vượt xa yêu cầu tối thiểu (fix >= 3 findings).
+## Đánh giá tự động chuyên sâu theo chuẩn CodeRabbit với 6 phát hiện trên 4 nhóm kỹ thuật
+
+| Mã | Nhóm kỹ thuật | Vấn đề phát hiện bởi AI | Quyết định | Trạng thái & Hành động khắc phục |
+| :--- | :--- | :--- | :---: | :--- |
+| **F-01** | **Security & Validation** | `FirebaseStorageService` chưa hỗ trợ định dạng báo cáo `PDF`/`CSV` | **ACCEPT** | Đã mở rộng MIME-type & kiểm tra phần mở rộng tệp (Đã commit). |
+| **F-02** | **Performance & UI** | Màn hình Onboarding có nguy cơ tràn dọc trên thiết bị màn hình nhỏ | **ACCEPT** | Đã bọc `SingleChildScrollView` + `LayoutBuilder` (Đã commit). |
+| **F-03** | **Architecture** | Thiếu sự kiện chuẩn `export_file` trong `AnalyticsService` | **ACCEPT** | Đã bổ sung `logExportFile()` không chứa PII (Đã commit). |
+| **F-04** | **Error Handling** | Cần ghi nhận log chẩn đoán rõ hơn khi tải tệp lúc thiếu phiên Firebase | **MODIFY** | Kết hợp thông báo UI thân thiện & `recordHandledError` (Đã commit). |
+| **F-05** | **Cloud Security** | Cần siết chặt giới hạn dung lượng `< 10MB` và MIME-type trong `storage.rules` | **ACCEPT** | Đã cập nhật `firebase/storage.rules` cô lập theo UID (Đã commit). |
+| **F-06** | **Performance** | Chu kỳ fetch Remote Config mặc định gây trễ khi kiểm thử Debug | **MODIFY** | Tự động chuyển về `Duration.zero` khi `kDebugMode == true` (Đã commit). |
+
+* **Kết quả:** Đã thực hiện **5 commit sửa lỗi nguyên tử (atomic commits)** trên Git, vượt yêu cầu tối thiểu của đề bài (`fix >= 3 findings`).
 
 ---
 
 <!-- SLIDE 13 -->
 # SLIDE 13: THÁCH THỨC KỸ THUẬT VÀ GIẢI PHÁP TỐI ƯU
-## Các bài học kinh nghiệm thu được trong quá trình triển khai thực tế
-1. **Đồng bộ xác thực đa nền tảng (Dual Authentication):**
-   - *Vấn đề:* Ứng dụng vừa dùng Firebase Auth (Google Sign-In) vừa kết nối hệ thống Microservices .NET (JWT).
-   - *Giải pháp:* Dùng cơ chế Token Exchange: Đăng nhập Firebase lấy ID Token -> Chuyển tiếp lên User API :5001 đổi lấy JWT phiên làm việc để gọi các service Forum, Chat, AI.
-2. **Quy tắc bảo mật Cloud Storage không phụ thuộc vào trạng thái giả định:**
-   - *Vấn đề:* Mặc định Storage Rules nếu viết lỏng lẻo sẽ gây nguy cơ lộ dữ liệu cá nhân giữa các sinh viên.
-   - *Giải pháp:* Ràng buộc đường dẫn nghiêm ngặt theo `request.auth.uid == userId`, loại bỏ hoàn toàn quy tắc mở.
-3. **Thích ứng đa kích thước màn hình Android:**
-   - *Vấn đề:* Layout bị overflow khi hiển thị bàn phím hoặc chạy trên các dòng máy có độ phân giải khác nhau.
-   - *Giải pháp:* Triển khai `SingleChildScrollView` với `BouncingScrollPhysics` kết hợp `LayoutBuilder` thích ứng linh hoạt.
+## Các bài học kinh nghiệm đúc kết trong quá trình tích hợp thực tế
+
+1. **Đồng bộ xác thực kép giữa Firebase BaaS và Hệ thống Microservices .NET (Dual Authentication):**
+   - *Thách thức:* Ứng dụng vừa sử dụng Firebase Authentication (Google Sign-In) cho các dịch vụ đám mây, vừa phải xác thực JWT với 5 Microservices .NET (`:5001–:5005`).
+   - *Giải pháp:* Xây dựng cơ chế **Token Exchange & Graceful Fallback**: Sau khi lấy Firebase `idToken`, hệ thống tự động đồng bộ phiên với User Service (`:5001`) để nhận JWT truy cập Forum, Chat, AI.
+2. **Bảo mật Cloud Storage không phụ thuộc vào trạng thái giả định ở Client:**
+   - *Thách thức:* Nếu chỉ kiểm tra điều kiện tải tệp ở tầng Flutter UI, người dùng khác có thể truy cập trái phép đường dẫn tệp.
+   - *Giải pháp:* Áp dụng luật bảo mật hai lớp: kiểm tra ở ViewModel trước khi upload và cưỡng chế `request.auth.uid == userId` kèm giới hạn `< 10MB` trực tiếp trong `firebase/storage.rules`.
+3. **Thích ứng giao diện đa thiết bị Android (Responsive Multi-Viewport & Accessibility):**
+   - *Thách thức:* Lỗi `RenderFlex overflowed` khi người dùng bật cỡ chữ lớn (`1.35x`), xoay ngang màn hình hoặc mở bàn phím ảo.
+   - *Giải pháp:* Chuẩn hóa bố cục bằng `LayoutBuilder`, `SingleChildScrollView`, `Wrap` và `MediaQuery.viewInsetsOf(context).bottom` trên toàn bộ các màn hình.
 
 ---
 
 <!-- SLIDE 14 -->
 # SLIDE 14: TỔNG KẾT & ĐỊNH HƯỚNG PHÁT TRIỂN
-## Đánh giá mức độ hoàn thiện sản phẩm nộp Lab 3
-* **Tổng kết thành quả:**
-  - Đạt 100% tất cả các tiêu chí trong Đề bài Lab 3 (`docs/LAB3_REQUIREMENTS.md`).
-  - Kiến trúc MVVM phân tầng sạch sẽ, tách biệt hoàn toàn giao diện khỏi Firebase SDK.
-  - Thu thập trọn vẹn bộ 25 ảnh bằng chứng (20 ảnh Mobile UI + 5 ảnh Firebase Console).
-  - Khung kiểm thử ARTEMIS và AI Code Review hoàn thành với báo cáo minh bạch, truy vết rõ ràng.
-* **Định hướng phát triển cho Lab 4 / Dự án tốt nghiệp:**
-  - Tích hợp thêm kênh thanh toán học bổng và quỹ khuyến học Alumni qua VNPay / MoMo.
-  - Nâng cấp gọi video/audio 1-1 với cựu sinh viên thông qua WebRTC / Agora SDK.
-  - Mở rộng mô hình AI RAG trên dữ liệu đề cương bài giảng và tài liệu hướng dẫn OJT của Đại học FPT.
+## Đánh giá mức độ hoàn thiện sản phẩm bàn giao Lab 3 & Lộ trình tiếp theo
 
----
-### XIN CHÂN THÀNH CẢM ƠN THẦY CÔ VÀ CÁC BẠN ĐÃ LẮNG NGHE!
-*(Mọi câu hỏi và trao đổi kỹ thuật xin vui lòng phản hồi)*
+* **Tổng kết thành quả đạt được (100% yêu cầu Đề bài Lab 3 — `docs/LAB3_REQUIREMENTS.md`):**
+  - **Kiến trúc chuẩn mực:** Tuân thủ nghiêm ngặt mô hình MVVM phân tầng, tách biệt hoàn toàn UI khỏi Firebase SDK.
+  - **6/6 Dịch vụ Firebase hoạt động thực tế:** Authentication, Cloud Storage, FCM, Google Analytics, Crashlytics, Remote Config.
+  - **Đầy đủ minh chứng sống động:** Trọn bộ **25 ảnh chụp thực tế** (20 ảnh luồng ứng dụng Android + 5 ảnh bảng điều khiển Firebase Console).
+  - **Kiểm chuẩn chất lượng tự động:** Vượt qua **42/42 lượt chạy ARTEMIS (100%)**, hoàn thành báo cáo AI Code Review và bộ kiểm thử Widget đa màn hình.
+* **Định hướng phát triển trong giai đoạn tiếp theo:**
+  - Tích hợp cuộc gọi Video/Audio 1-1 trực tiếp cho phiên tư vấn Mentorship qua WebRTC / Agora SDK.
+  - Mở rộng kho tri thức RAG của trợ lý **AI Mentor** với dữ liệu đề cương môn học và cẩm nang OJT của Đại học FPT.
+  - Tích hợp cổng đóng góp Quỹ học bổng Cựu sinh viên FPTU.
+
+### XIN CHÂN THÀNH CẢM ƠN THẦY VÀ CÁC BẠN ĐÃ LẮNG NGHE!
+*(Nhóm F-Alumni rất mong nhận được ý kiến đóng góp và câu hỏi phản biện từ Thầy)*
