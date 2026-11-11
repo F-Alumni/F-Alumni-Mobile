@@ -57,6 +57,7 @@ class AuthCubit extends Cubit<AuthState> {
     required String email,
     required String password,
     required String fullName,
+    String accountType = 'Alumni',
   }) async {
     emit(AuthLoading());
     try {
@@ -64,6 +65,7 @@ class AuthCubit extends Cubit<AuthState> {
         email: email.trim(),
         password: password,
         fullName: fullName.trim(),
+        accountType: accountType,
       );
       emit(AuthUnauthenticated());
       return null;

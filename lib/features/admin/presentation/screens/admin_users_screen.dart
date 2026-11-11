@@ -18,6 +18,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   final List<String> _roleFilters = [
     'Tất cả',
     'Cựu sinh viên',
+    'Sinh viên',
     'Bị khóa',
     'Chưa xác minh',
   ];

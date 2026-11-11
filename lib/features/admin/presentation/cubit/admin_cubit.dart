@@ -38,6 +38,8 @@ class AdminLoaded extends AdminState {
           userRoleFilter == 'Tất cả' ||
           (userRoleFilter == 'Cựu sinh viên' &&
               u.role.toLowerCase() == 'alumni') ||
+          (userRoleFilter == 'Sinh viên' &&
+              u.role.toLowerCase() == 'student') ||
           (userRoleFilter == 'Bị khóa' && u.isLocked) ||
           (userRoleFilter == 'Chưa xác minh' && u.isPendingVerification);
 

@@ -28,6 +28,7 @@ class _AccountFlowScreenState extends State<AccountFlowScreen> {
   late final _password = TextEditingController();
   late final _currentPassword = TextEditingController();
   late final _otp = TextEditingController();
+  String _selectedAccountType = 'Alumni';
   bool _busy = false;
 
   @override
@@ -59,6 +60,7 @@ class _AccountFlowScreenState extends State<AccountFlowScreen> {
           email: _email.text,
           password: _password.text,
           fullName: _name.text,
+          accountType: _selectedAccountType,
         );
         if (error == null && mounted)
           context.go(
@@ -112,7 +114,34 @@ class _AccountFlowScreenState extends State<AccountFlowScreen> {
           child: ListView(
             padding: const EdgeInsets.all(24),
             children: [
-              if (mode == AccountFlowMode.register) _field(_name, 'Họ và tên'),
+              if (mode == AccountFlowMode.register) ...[
+                _field(_name, 'Họ và tên'),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedAccountType,
+                    decoration: const InputDecoration(
+                      labelText: 'Vai trò (Role)',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'Alumni',
+                        child: Text('Cựu sinh viên (Alumni)'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'Student',
+                        child: Text('Sinh viên (Student)'),
+                      ),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() => _selectedAccountType = val);
+                      }
+                    },
+                  ),
+                ),
+              ],
               if (mode != AccountFlowMode.changePassword) ...[
                 _field(
                   _email,

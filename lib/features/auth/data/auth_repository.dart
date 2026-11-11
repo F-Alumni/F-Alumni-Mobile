@@ -103,6 +103,7 @@ class AuthRepository {
     required String email,
     required String password,
     required String fullName,
+    String accountType = 'Alumni',
   }) async {
     await api.user.post(
       '/api/v1/auth/register',
@@ -111,7 +112,8 @@ class AuthRepository {
         'password': password,
         'fullName': fullName,
         'campus': 'HCM',
-        'accountType': 'Student',
+        'accountType': accountType,
+        'role': accountType.toUpperCase(),
       },
     );
   }
